@@ -1,0 +1,246 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://safaaisaathi.contracts/constants.json",
+  "title": "Safai Saathi shared constants",
+  "description": "Every number and every string that must match on both sides of a boundary. The Dart apps, the TypeScript Functions and the admin panel all read this one file. A value that appears in two codebases and is not here is a bug waiting to happen. PRD-2 section 0.4: 'one config file per project, same names'.",
+  "x-groups": {
+    "tracking": "The location engine's cadence and thresholds.",
+    "arrival": "The arrival alert's geometry and freshness.",
+    "duplicates": "The complaint merge radius.",
+    "escalation": "The complaint escalation clock.",
+    "complaints": "The complaint rate limit.",
+    "depot": "The depot dwell auto-end rule.",
+    "eta": "The ETA fallback speed.",
+    "identity": "Claim names, formats and reason codes. A mismatch here is a security bug or a broken message.",
+    "binding": "The device-claim rate limit and the claim modes."
+  },
+  "tracking": {
+    "GPS_INTERVAL_SEC": {
+      "value": 10,
+      "unit": "seconds",
+      "usedBy": ["driverapp:tracking_engine", "platform:arrivalAlert"],
+      "note": "The normal location write cadence. The arrival alert sees one write per this interval."
+    },
+    "GPS_INTERVAL_LOW_BATTERY_SEC": {
+      "value": 30,
+      "unit": "seconds",
+      "usedBy": ["driverapp:tracking_engine"],
+      "note": "The cadence below LOW_BATTERY_PCT."
+    },
+    "LOW_BATTERY_PCT": {
+      "value": 20,
+      "unit": "percent",
+      "usedBy": ["driverapp:write_policy"],
+      "note": "Below this, the slow cadence applies."
+    },
+    "MIN_MOVE_M": {
+      "value": 15,
+      "unit": "metres",
+      "usedBy": ["driverapp:write_policy"],
+      "note": "The movement threshold below which a location write is skipped."
+    },
+    "HEARTBEAT_SEC": {
+      "value": 30,
+      "unit": "seconds",
+      "usedBy": ["driverapp:write_policy"],
+      "note": "The write policy's heartbeat. Forces a write even if the van has not moved."
+    }
+  },
+  "arrival": {
+    "ARRIVAL_ALERT_RADIUS_M": {
+      "value": 100,
+      "unit": "metres",
+      "usedBy": ["platform:arrivalAlert", "userapp"],
+      "note": "How close the van must be to the ward boundary before the citizen is alerted. PRD-2 section 0.6 says 500. The office asked for 100. The measured distance is from the ward BOUNDARY, not the centre, so the check is 'distance(centre) <= radiusM + ARRIVAL_ALERT_RADIUS_M'."
+    },
+    "STALE_LOCATION_SEC": {
+      "value": 60,
+      "unit": "seconds",
+      "usedBy": ["platform:arrivalAlert", "userapp"],
+      "note": "A location older than this is not trusted. The server uses it to decide whether to alert. The device uses it to decide whether to show 'last seen X min ago'."
+    },
+    "OFFLINE_THRESHOLD_MIN": {
+      "value": 10,
+      "unit": "minutes",
+      "usedBy": ["platform:vanOfflineWatch", "adminpanel"],
+      "note": "A van with no location write for this long is marked offline."
+    }
+  },
+  "duplicates": {
+    "DUPLICATE_RADIUS_M": {
+      "value": 50,
+      "unit": "metres",
+      "usedBy": ["platform:mergeDuplicates"],
+      "note": "Two complaints closer than this are candidates for merging."
+    }
+  },
+  "escalation": {
+    "ESCALATION_L1_HOURS": {
+      "value": 24,
+      "unit": "hours",
+      "usedBy": ["platform:escalateComplaints"],
+      "note": "An unresolved complaint escalates to level 1 after this."
+    },
+    "ESCALATION_L2_HOURS": {
+      "value": 48,
+      "unit": "hours",
+      "usedBy": ["platform:escalateComplaints"],
+      "note": "An unresolved complaint escalates to level 2 after this."
+    },
+    "MISSED_REPORT_THRESHOLD": {
+      "value": 3,
+      "unit": "reports",
+      "usedBy": ["platform:missedCollectionAlert"],
+      "note": "This many missed-collection reports in one ward today triggers the inspector alert."
+    }
+  },
+  "complaints": {
+    "MAX_COMPLAINTS_PER_DEVICE_PER_DAY": {
+      "value": 5,
+      "unit": "complaints",
+      "usedBy": ["platform:checkComplaintRate"],
+      "note": "The rate limit per device per IST day."
+    }
+  },
+  "depot": {
+    "DEPOT_RADIUS_M": {
+      "value": 500,
+      "unit": "metres",
+      "usedBy": ["driverapp:depot_dwell", "platform:clearStaleVanMarkers"],
+      "note": "The depot zone radius."
+    },
+    "DEPOT_DWELL_LIMIT_HOURS": {
+      "value": 3,
+      "unit": "hours",
+      "usedBy": ["driverapp:depot_dwell"],
+      "note": "Continuous dwell inside DEPOT_RADIUS_M that auto-ends the shift."
+    },
+    "DEPOT_DWELL_RESET_M": {
+      "value": 100,
+      "unit": "metres",
+      "usedBy": ["driverapp:depot_dwell"],
+      "note": "Moving this far outside the depot restarts the dwell clock."
+    }
+  },
+  "eta": {
+    "AVG_VAN_SPEED_KMPH": {
+      "value": 15,
+      "unit": "km/h",
+      "usedBy": ["userapp", "driverapp"],
+      "note": "The fallback speed for the straight-line ETA estimate."
+    }
+  },
+  "identity": {
+    "CLAIM_VAN_ID": {
+      "value": "vanId",
+      "type": "string",
+      "usedBy": ["platform:callables", "platform:rules", "driverapp"],
+      "note": "The claim name for the van the session is bound to."
+    },
+    "CLAIM_DRIVER_ID": {
+      "value": "driverId",
+      "type": "string",
+      "usedBy": ["platform:callables", "platform:rules", "driverapp"],
+      "note": "The claim name for the driver's badge code. This is the phone-number wall."
+    },
+    "CLAIM_DEVICE_ID": {
+      "value": "deviceId",
+      "type": "string",
+      "usedBy": ["platform:bootstrapUserSession", "platform:rules", "userapp"],
+      "note": "The claim name for the citizen's install id. Q6."
+    },
+    "CLAIM_ROUTE_ID": {
+      "value": "routeId",
+      "type": "string",
+      "usedBy": ["platform:bootstrapUserSession", "platform:rules", "userapp"],
+      "note": "The claim name for the route the citizen's ward belongs to."
+    },
+    "CLAIM_CURRENT_TRIP_ID": {
+      "value": "currentTripId",
+      "type": "string",
+      "usedBy": ["platform:startShift", "platform:rules", "driverapp"],
+      "note": "The claim name for the open trip. Lets a rule be a pure token check."
+    },
+    "CLAIM_STAFF_ID": {
+      "value": "staffId",
+      "type": "string",
+      "usedBy": ["platform:mintStaffToken", "platform:rules", "adminpanel"],
+      "note": "The claim name for the staff member's doc id."
+    },
+    "CLAIM_WARD_IDS": {
+      "value": "wardIds",
+      "type": "string",
+      "claimValueType": "string[]",
+      "usedBy": ["platform:mintStaffToken", "platform:rules", "adminpanel"],
+      "note": "The claim name for the staff member's ward scope. The claim NAME is a string. The claim's VALUE is an array of ward ids. Every other CLAIM_ constant has a string value, so this one carries an explicit claimValueType."
+    },
+    "CLAIM_ROLE": {
+      "value": "role",
+      "type": "string",
+      "usedBy": ["platform:mintStaffToken", "platform:rules", "adminpanel"],
+      "note": "The claim name for the staff role."
+    },
+    "PHONE_MASK_FORMAT": {
+      "value": "98XXXXXX10",
+      "type": "string",
+      "usedBy": ["platform:maskDriverPhone", "driverapp", "adminpanel"],
+      "note": "The exact masked phone shape. A different length breaks the confirm card's layout."
+    },
+    "DRIVER_CODE_PATTERN": {
+      "value": "^[A-Z]{2}-[0-9]{4}$",
+      "type": "string",
+      "usedBy": ["platform:callables", "platform:normalizeDriverCode", "adminpanel"],
+      "note": "The driver doc id format. The callable rejects what the admin panel normalizes."
+    },
+    "TICKET_ID_PATTERN": {
+      "value": "^PMH-[0-9]{8}-[0-9]{4}$",
+      "type": "string",
+      "usedBy": ["platform:makeTicketId", "userapp", "adminpanel"],
+      "note": "The human complaint id format."
+    }
+  },
+  "binding": {
+    "SHIFT_CONFLICT_VAN_HELD": {
+      "value": "vanHeldByAnotherDriver",
+      "type": "string",
+      "usedBy": ["platform:startShift", "driverapp"],
+      "note": "Reason code: the van is on shift with another driver. Q2."
+    },
+    "SHIFT_CONFLICT_ALREADY_CLAIMED": {
+      "value": "vanAlreadyClaimed",
+      "type": "string",
+      "usedBy": ["platform:bindDeviceToVan", "driverapp"],
+      "note": "Reason code: another phone already holds the binding. Q1 and Q2."
+    },
+    "SHIFT_CONFLICT_STALE_MARKER": {
+      "value": "staleMarker",
+      "type": "string",
+      "usedBy": ["platform:startShift", "driverapp"],
+      "note": "Reason code: vans.currentTripId points at a trip of a different van. Q2."
+    },
+    "BIND_RATE_LIMIT_MAX": {
+      "value": 5,
+      "unit": "attempts",
+      "usedBy": ["platform:bindDeviceToVan"],
+      "note": "The device-claim oracle guard."
+    },
+    "BIND_RATE_LIMIT_WINDOW_MIN": {
+      "value": 10,
+      "unit": "minutes",
+      "usedBy": ["platform:bindDeviceToVan"],
+      "note": "The window for BIND_RATE_LIMIT_MAX."
+    },
+    "VAN_DEVICE_CLAIM_MODE_FIRST": {
+      "value": "firstClaim",
+      "type": "string",
+      "usedBy": ["platform:bindDeviceToVan"],
+      "note": "Q1. The binding was created by the first phone with a valid code."
+    },
+    "VAN_DEVICE_CLAIM_MODE_PREPROVISIONED": {
+      "value": "preProvisioned",
+      "type": "string",
+      "usedBy": ["platform:bindDeviceToVan"],
+      "note": "Phase 11 hardening. The office had already written the binding."
+    }
+  }
+}

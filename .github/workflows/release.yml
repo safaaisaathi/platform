@@ -1,0 +1,102 @@
+name: release
+
+# The release workflow. A tag triggers a release of the contract version.
+#
+# The contract version lives in VERSION. The tag is v<VERSION>. The two must
+# agree, or the release fails.
+#
+# A release does NOT deploy anything. The rules and the Functions are deployed
+# by a human, on purpose, because the deploy order matters and only a person
+# can see the office's operational window.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: The version to release
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: publish the contract version
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: 08-tools/package-lock.json
+
+      - name: Install the tool dependencies
+        working-directory: 08-tools
+        run: npm ci --no-audit --no-fund
+
+      - name: Read the version
+        id: ver
+        run: echo "version=$(cat VERSION)" >> "$GITHUB_OUTPUT"
+
+      - name: The tag must match VERSION
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          tag="${GITHUB_REF#refs/tags/v}"
+          if [ "$tag" != "${{ steps.ver.outputs.version }}" ]; then
+            echo "The tag is v$tag but VERSION says ${{ steps.ver.outputs.version }}."
+            exit 1
+          fi
+          echo "tag matches VERSION"
+
+      - name: Validate the contract
+        working-directory: 08-tools
+        run: node --experimental-strip-types validate-contract.ts
+
+      - name: Check consistency
+        working-directory: 08-tools
+        run: node --experimental-strip-types check-consistency.ts
+
+      - name: Build the composed schemas
+        working-directory: 08-tools
+        run: node --experimental-strip-types build-schemas.ts
+
+      - name: Package the contract
+        run: |
+          mkdir -p release
+          cp -r 02-contracts release/02-contracts
+          cp -r 03-rules release/03-rules
+          cp -r 05-decisions release/05-decisions
+          cp -r 06-changes release/06-changes
+          cp VERSION release/VERSION
+          cd release && tar -czf ../safaaisaathi-platform-contract-${{ steps.ver.outputs.version }}.tar.gz .
+          cd ..
+          echo "release/safaaisaathi-platform-contract-${{ steps.ver.outputs.version }}.tar.gz"
+
+      - name: Create the GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Contract ${{ steps.ver.outputs.version }}
+          body_path: 06-changes/CHANGELOG.md
+          files: release/safaaisaathi-platform-contract-${{ steps.ver.outputs.version }}.tar.gz
+
+      - name: Summarise the affected apps
+        run: |
+          echo "### Who is affected by ${{ steps.ver.outputs.version }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          node -e '
+            const fs = require("fs");
+            const m = JSON.parse(fs.readFileSync("06-changes/manifest.json", "utf8"));
+            const target = "${{ steps.ver.outputs.version }}";
+            const rows = (m.changes ?? []).filter(c => c.contractVersion?.to === target);
+            if (!rows.length) { console.log("No change moved to this version."); }
+            for (const c of rows) {
+              console.log(`- ${c.id} ${c.severity}/${c.priority} ${c.title} -> ${(c.affectedApps ?? []).join(", ")}`);
+            }
+          ' | tee -a "$GITHUB_STEP_SUMMARY"

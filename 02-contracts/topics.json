@@ -1,0 +1,92 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://safaaisaathi.contracts/topics.json",
+  "title": "Safai Saathi FCM topic map",
+  "description": "Every FCM topic the platform publishes to or subscribes to. A topic is a device subscription, not a user subscription. The server can push to a topic or to a device token, never to a person.",
+  "x-patterns": {
+    "van": "van_{vanId}",
+    "ward": "ward_{wardId}",
+    "staff": "staff_{staffId}",
+    "broadcast": "all"
+  },
+  "x-topics": {
+    "van_{vanId}": {
+      "subscribedBy": ["driverapp"],
+      "subscribedWhen": "After the shift starts, and unsubscribed when the shift ends.",
+      "publishedBy": ["sendNotice"],
+      "carries": "Notices for one van.",
+      "cleanupRule": "The driver app MUST unsubscribe on shift end. On a shared van, the previous driver's personal phone would otherwise keep receiving the van's notices forever."
+    },
+    "ward_{wardId}": {
+      "subscribedBy": ["userapp"],
+      "subscribedWhen": "After the citizen's ward is resolved. Re-subscribed when the ward changes.",
+      "publishedBy": ["arrivalAlert", "sendNotice"],
+      "carries": "Arrival alerts and notices for one ward.",
+      "whyItWorks": "The citizen's ward is known BEFORE the van arrives, so the subscription is already in place when the alert fires."
+    },
+    "staff_{staffId}": {
+      "subscribedBy": ["adminpanel"],
+      "subscribedWhen": "After the staff token is minted.",
+      "publishedBy": ["missedCollectionAlert", "escalateComplaints"],
+      "carries": "Alerts that one staff member must act on.",
+      "note": "This topic is how the platform pushes to one staff member WITHOUT a device registry. PRD-2 section 0.6 already specifies it."
+    },
+    "all": {
+      "subscribedBy": ["driverapp", "userapp"],
+      "subscribedWhen": "On first launch. Never unsubscribed.",
+      "publishedBy": ["sendNotice"],
+      "carries": "Broadcast notices.",
+      "note": "A targetType of 'all' is why the notice read-state needs a subcollection rather than an array on the notice doc."
+    }
+  },
+  "x-pushes": {
+    "arrivalAlert": {
+      "to": "ward_{wardId}",
+      "trigger": "A vans/{vanId} update where the van is within ARRIVAL_ALERT_RADIUS_M of the next un-alerted ward.",
+      "priority": "HIGH",
+      "idempotency": "trips/{tripId}.alertedWardIds. The ward is appended once, inside a transaction with the send."
+    },
+    "sendNotice": {
+      "to": "Depends on notices.targetType: van_{vanId}, ward_{wardId}, or all",
+      "trigger": "A notices doc is created.",
+      "priority": "HIGH for van, MEDIUM for ward and all"
+    },
+    "missedCollectionAlert": {
+      "to": "staff_{staffId}",
+      "trigger": "MISSED_REPORT_THRESHOLD missed-collection reports in one ward today.",
+      "priority": "HIGH"
+    },
+    "escalateComplaints": {
+      "to": "staff_{staffId}",
+      "trigger": "A complaint passes ESCALATION_L1_HOURS or ESCALATION_L2_HOURS.",
+      "priority": "HIGH"
+    },
+    "vanOfflineWatch": {
+      "to": "adminpanel:live",
+      "trigger": "A van has no location write for OFFLINE_THRESHOLD_MIN.",
+      "priority": "HIGH",
+      "note": "The admin panel sees this in its live view. It is not a push to a topic yet."
+    }
+  },
+  "x-payload": {
+    "shape": {
+      "notification": { "title": "string", "body": "string" },
+      "data": {
+        "type": "string",
+        "noticeId": "string",
+        "targetType": "string",
+        "targetId": "string"
+      }
+    },
+    "rule": "The data payload MUST carry the notice id. The app navigates using it.",
+    "privacy": "A notification payload is rendered by the OS even when the app is closed, so its body is visible on the lock screen. Municipal garbage notices are not sensitive, so the simple shape is fine. If that changes, use a data-only payload and render it in-app."
+  },
+  "x-gaps": {
+    "note": "These gaps are recorded so no one assumes they are handled. They are Phase 7 work in the backend blueprint.",
+    "gaps": [
+      "There is no inbound FCM handler. The driver app subscribes but never receives. grep for onMessage and onBackgroundMessage returns zero hits.",
+      "The van topic is never unsubscribed.",
+      "There is no device registry, so the server cannot push to one individual device. Staff topics cover the admin's needs without one."
+    ]
+  }
+}

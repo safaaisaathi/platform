@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://safaaisaathi.contracts/design-tokens.json",
+  "title": "Safai Saathi design tokens",
+  "description": "The shared visual vocabulary. PRD-2 section 0.5: the same token names must exist in the Flutter theme and the admin panel's CSS variables. The values here are the platform's default. A screen may override a value locally, but it must use the same token NAME.",
+  "x-rule": "Colors ONLY via the token. Spacing ONLY via the token. Radius ONLY via the token. A raw hex or a numeric padding literal in a screen is a bug. This is the same law as CL-D01 to CL-D31 in the driver app's design spec.",
+  "color": {
+    "primary": { "value": "#1E8E5A", "note": "The brand green. The primary CTA's fill." },
+    "onPrimary": { "value": "#FFFFFF" },
+    "background": { "value": "#F6F8F7" },
+    "surface": { "value": "#FFFFFF" },
+    "textPrimary": { "value": "#1B1F1D" },
+    "textMuted": { "value": "#5F6B66" },
+    "statusReceived": { "value": "#F2A100", "note": "The complaint status. ALWAYS colour plus icon plus label, never colour alone." },
+    "statusAssigned": { "value": "#2F6FDE" },
+    "statusResolved": { "value": "#1E8E5A" },
+    "statusEscalated": { "value": "#D93025", "note": "The error colour family. For validation and failure messages only." }
+  },
+  "radius": {
+    "md": { "value": 12, "unit": "dp" }
+  },
+  "spacing": {
+    "unit": { "value": 8, "unit": "dp", "note": "All spacing is a multiple of this." }
+  },
+  "font": {
+    "family": { "value": "Noto Sans", "note": "Noto Sans covers both Latin and Gujarati. The admin panel needs the Gujarati face if it ever renders notice text a driver will read." },
+    "fallback": { "value": "Noto Sans Gujarati" },
+    "weights": { "value": [300, 400, 500, 600, 700] }
+  },
+  "x-app-accessibility": {
+    "minTapTargetDp": 56,
+    "minTapTargetDriverDp": 64,
+    "minBodyTextSp": 14,
+    "note": "The driver app uses driver sizes everywhere. The user app uses user sizes. Never mix them."
+  }
+}

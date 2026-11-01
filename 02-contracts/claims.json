@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://safaaisaathi.contracts/claims.json",
+  "title": "Safai Saathi custom claims",
+  "description": "Every custom claim the platform mints. A claim is the ONLY thing the Firestore rules can use to tell one caller from another. The client never names its own scope. If a value in this file is missing from a token, every rule that depends on it denies. If a value is misspelled, the same happens and nothing says why.",
+  "x-principle": "The client proves who it is with a claim that the server minted. The rules trust only the claim. Every decision that needs live state happens in a Function.",
+  "x-claims": {
+    "vanId": {
+      "type": "string",
+      "mintedBy": ["bindDeviceToVan"],
+      "readBy": ["03-rules/firestore.rules", "04-functions/src/index.ts"],
+      "apps": ["driverapp"],
+      "scope": "The van the session is bound to. Scopes the driver's writes to vans and trips.",
+      "example": "van-01"
+    },
+    "driverId": {
+      "type": "string",
+      "mintedBy": ["bindDeviceToVan"],
+      "readBy": ["03-rules/firestore.rules", "04-functions/src/index.ts"],
+      "apps": ["driverapp"],
+      "scope": "The driver's badge code. Scopes the drivers doc read. This is the phone-number wall: without it, any signed-in caller can read any driver's phone.",
+      "example": "AB-1001"
+    },
+    "currentTripId": {
+      "type": "string",
+      "mintedBy": ["startShift"],
+      "readBy": ["03-rules/firestore.rules", "04-functions/src/index.ts"],
+      "apps": ["driverapp"],
+      "scope": "The open trip. Lets a complaint rule be a pure token check with no get().",
+      "example": "X4e68Ep69H2whABl2rqf"
+    },
+    "deviceId": {
+      "type": "string",
+      "mintedBy": ["bootstrapUserSession"],
+      "readBy": ["03-rules/firestore.rules", "04-functions/src/index.ts"],
+      "apps": ["userapp"],
+      "scope": "The citizen's install id. Scopes the complaint and rating reads. Q6: same install only.",
+      "example": "b7f1e2a4-9c3d-4e8a-b1f2-7d6c5a4b3e2f"
+    },
+    "routeId": {
+      "type": "string",
+      "mintedBy": ["bootstrapUserSession"],
+      "readBy": ["03-rules/firestore.rules", "04-functions/src/index.ts"],
+      "apps": ["userapp"],
+      "scope": "The route the citizen's ward belongs to. Scopes the trip reads for the 'collected today' display.",
+      "example": "route-01",
+      "refreshRule": "Re-mint when the citizen's ward changes to one on a different route. A stale value shows the wrong neighbourhood, which is a UX annoyance, not a data leak."
+    },
+    "role": {
+      "type": "string",
+      "mintedBy": ["mintStaffToken"],
+      "readBy": ["03-rules/firestore.rules", "04-functions/src/index.ts"],
+      "apps": ["adminpanel"],
+      "scope": "The staff role. Determines what they may act on.",
+      "enumRef": "enums.json#/$defs/staff.role",
+      "example": "inspector"
+    },
+    "staffId": {
+      "type": "string",
+      "mintedBy": ["mintStaffToken"],
+      "readBy": ["03-rules/firestore.rules", "04-functions/src/index.ts"],
+      "apps": ["adminpanel"],
+      "scope": "The staff doc id. The scope key for the admin panel.",
+      "example": "stf-001"
+    },
+    "wardIds": {
+      "type": "string[]",
+      "mintedBy": ["mintStaffToken"],
+      "readBy": ["03-rules/firestore.rules", "04-functions/src/index.ts"],
+      "apps": ["adminpanel"],
+      "scope": "The staff member's ward scope. In the token so the rules do not get() on every read.",
+      "example": ["ward-1", "ward-2"]
+    }
+  },
+  "x-minting": {
+    "principle": "A claim is minted only by the server, only from an authoritative document the client cannot edit. The client asks; the server answers.",
+    "callables": [
+      {
+        "name": "bindDeviceToVan",
+        "app": "driverapp",
+        "claims": ["vanId", "driverId"],
+        "authoritativeDoc": "drivers/{driverId}, vanDevices/{vanId}"
+      },
+      {
+        "name": "startShift",
+        "app": "driverapp",
+        "claims": ["currentTripId"],
+        "authoritativeDoc": "trips/{tripId}, vans/{vanId}"
+      },
+      {
+        "name": "bootstrapUserSession",
+        "app": "userapp",
+        "claims": ["deviceId", "routeId"],
+        "authoritativeDoc": "wards/{wardId}"
+      },
+      {
+        "name": "mintStaffToken",
+        "app": "adminpanel",
+        "claims": ["role", "staffId", "wardIds"],
+        "authoritativeDoc": "staff/{staffId}"
+      }
+    ],
+    "never": [
+      "A client parameter is never a claim. A client parameter is forgeable.",
+      "A badge code is never a claim. The badge code is public by design.",
+      "A deviceId sent in a query is never a scope. It must be in the token."
+    ]
+  },
+  "x-staleness": {
+    "principle": "A token's claims are a snapshot. A claim that is a privilege goes stale and must be checked against a live document before it is acted on.",
+    "privilegeClaims": ["role", "staffId", "wardIds"],
+    "privilegeExpiry": "Firebase ID tokens expire after one hour. The client refreshes them. So a scope change lands within an hour.",
+    "instantRevocation": "staff/{id}.active = false takes effect immediately, because every admin write goes through a callable that reads the live staff doc. See Q5 and ADR-0003.",
+    "nonPrivilegeClaims": ["vanId", "driverId", "currentTripId", "deviceId", "routeId"]
+  }
+}

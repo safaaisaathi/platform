@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://safaaisaathi.contracts/enums.json",
+  "title": "Safai Saathi frozen enums",
+  "description": "Every frozen enum in the Safai Saathi platform. Collection schemas $ref these definitions. There is exactly one copy of each value in this repository. PRD-2 section 0.3 freezes these values; do not add, rename or remove one without a contract request.",
+  "x-catalog": {
+    "ward.type": {
+      "usedBy": ["wards"],
+      "owner": "platform",
+      "meaning": "Whether the ward is a city ward or a village ward."
+    },
+    "van.status": {
+      "usedBy": ["vans"],
+      "owner": "platform",
+      "meaning": "The van's shift state. 'on_shift' is the only state where the user app shows the van."
+    },
+    "complaint.category": {
+      "usedBy": ["complaints"],
+      "owner": "platform",
+      "meaning": "What the citizen is reporting."
+    },
+    "complaint.status": {
+      "usedBy": ["complaints"],
+      "owner": "platform",
+      "meaning": "The complaint's lifecycle state. Every app must agree on the meaning of each value."
+    },
+    "complaint.escalationLevel": {
+      "usedBy": ["complaints"],
+      "owner": "platform",
+      "meaning": "How far up the chain the complaint has been escalated. 0 is the inspector, 2 is the DDO."
+    },
+    "notice.targetType": {
+      "usedBy": ["notices"],
+      "owner": "platform",
+      "meaning": "Who receives the notice. Determines the FCM topic."
+    },
+    "staff.role": {
+      "usedBy": ["staff"],
+      "owner": "platform",
+      "meaning": "The staff member's authority level. Determines what they may act on."
+    },
+    "vanDevice.claimMode": {
+      "usedBy": ["vanDevices"],
+      "owner": "platform",
+      "meaning": "How the device-to-van binding was created. 'firstClaim' means the first phone with a valid code claimed it. 'preProvisioned' means the office had already written the binding."
+    },
+    "shiftConflict.reason": {
+      "usedBy": ["callable responses"],
+      "owner": "platform",
+      "meaning": "Why a shift could not start. The server sends the code. The app owns the words. Q2."
+    }
+  },
+  "$defs": {
+    "ward.type": {
+      "type": "string",
+      "title": "Ward type",
+      "enum": ["urban", "rural"]
+    },
+    "van.status": {
+      "type": "string",
+      "title": "Van status",
+      "enum": ["idle", "on_shift", "offline"]
+    },
+    "complaint.category": {
+      "type": "string",
+      "title": "Complaint category",
+      "enum": ["garbage_dump", "open_gutter", "missed_collection", "other"]
+    },
+    "complaint.status": {
+      "type": "string",
+      "title": "Complaint status",
+      "enum": ["received", "assigned", "resolved", "escalated"]
+    },
+    "complaint.escalationLevel": {
+      "type": "integer",
+      "title": "Escalation level",
+      "enum": [0, 1, 2]
+    },
+    "notice.targetType": {
+      "type": "string",
+      "title": "Notice target type",
+      "enum": ["van", "ward", "all"]
+    },
+    "staff.role": {
+      "type": "string",
+      "title": "Staff role",
+      "enum": ["inspector", "chief_officer", "tdo", "ddo"]
+    },
+    "vanDevice.claimMode": {
+      "type": "string",
+      "title": "Van device claim mode",
+      "enum": ["firstClaim", "preProvisioned"]
+    },
+    "shiftConflict.reason": {
+      "type": "string",
+      "title": "Shift conflict reason",
+      "enum": ["vanHeldByAnotherDriver", "vanAlreadyClaimed", "staleMarker"]
+    }
+  }
+}

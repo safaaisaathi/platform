@@ -1,0 +1,177 @@
+name: contract gate
+
+# The gate. Every pull request that touches the contract, the rules, the
+# functions or the change log must pass these checks before it merges.
+#
+# The gate is deliberately small. A gate that gets bypassed is worse than no
+# gate, because it teaches the team to ignore the signal.
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: contract-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: validate the contract
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: 08-tools/package-lock.json
+
+      - name: Install the tool dependencies
+        working-directory: 08-tools
+        run: npm ci --no-audit --no-fund
+
+      - name: Validate every schema, enum and constant
+        working-directory: 08-tools
+        run: node --experimental-strip-types validate-contract.ts
+
+      - name: Check the schema and the changelog agree
+        working-directory: 08-tools
+        run: node --experimental-strip-types check-consistency.ts
+
+      - name: Build the composed schemas
+        working-directory: 08-tools
+        run: node --experimental-strip-types build-schemas.ts
+
+      - name: The composed schemas must be committed
+        run: |
+          if [ -n "$(git status --porcelain 02-contracts/collections/.composed/)" ]; then
+            echo "The composed schemas are out of date. Run 08-tools/build-schemas.ts and commit the result."
+            git --no-pager diff 02-contracts/collections/.composed/
+            exit 1
+          fi
+          echo "composed schemas are current"
+
+  doc-tables:
+    name: check the markdown tables
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Every markdown table must have a consistent column count
+        run: python3 08-tools/check-tables.py
+
+      - name: Every relative markdown link must resolve
+        run: python3 08-tools/check-links.py
+
+  functions:
+    name: build the functions
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install
+        working-directory: 04-functions
+        run: npm install --no-audit --no-fund
+
+      - name: Build
+        working-directory: 04-functions
+        run: npm run build
+
+  no-secrets:
+    name: check for secrets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: No private key, no service account key, no .env
+        run: |
+          if git ls-files | grep -Ei '(\.pem$|-key\.json$|^serviceAccount.*\.json$|^\.env($|\.))'; then
+            echo "A secret-looking file is tracked. Remove it and rotate the credential."
+            exit 1
+          fi
+          echo "no secret-looking files are tracked"
+
+  change-pairing:
+    name: the manifest and its explanation files change together
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Every manifest entry must point at an explanation file that exists
+        run: |
+          node -e '
+            const fs = require("fs");
+            const path = require("path");
+            const m = JSON.parse(fs.readFileSync("06-changes/manifest.json", "utf8"));
+            const missing = [];
+            for (const c of m.changes ?? []) {
+              if (!c.explainedIn) { missing.push(c.id + ": no explainedIn"); continue; }
+              const p = path.join("06-changes", c.explainedIn);
+              if (!fs.existsSync(p)) missing.push(c.id + ": " + p + " does not exist");
+            }
+            if (missing.length) {
+              console.error("Missing explanation files:\n" + missing.join("\n"));
+              process.exit(1);
+            }
+            console.log("every change has its explanation file");
+          '
+
+      - name: The manifest and the explanation files must be in the same commit
+        run: |
+          manifest_changed=$(git diff --name-only origin/main...HEAD -- 06-changes/manifest.json | wc -l)
+          explained_changed=$(git diff --name-only origin/main...HEAD -- '06-changes/CHG-*.md' '06-changes/EXT-*.md' | wc -l)
+          if [ "$manifest_changed" -gt 0 ] && [ "$explained_changed" -eq 0 ]; then
+            echo "06-changes/manifest.json changed but no explanation file changed with it."
+            echo "The manifest and its explanation file always change together."
+            exit 1
+          fi
+          echo "manifest and explanation files are paired"
+
+  version-bump:
+    name: the contract version matches the change log
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: VERSION must be a valid SemVer
+        run: |
+          v=$(cat VERSION)
+          echo "$v" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || { echo "VERSION is not SemVer: $v"; exit 1; }
+          echo "VERSION is $v"
+
+      - name: A change to 02-contracts must bump VERSION
+        run: |
+          contract_changed=$(git diff --name-only origin/main...HEAD -- 02-contracts/ | wc -l)
+          version_changed=$(git diff --name-only origin/main...HEAD -- VERSION | wc -l)
+          if [ "$contract_changed" -gt 0 ] && [ "$version_changed" -eq 0 ]; then
+            echo "02-contracts/ changed but VERSION did not."
+            echo "See 02-contracts/severity-policy.md section 5 for the bump rule."
+            exit 1
+          fi
+          echo "the version bump is consistent"

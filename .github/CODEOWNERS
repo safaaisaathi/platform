@@ -1,0 +1,50 @@
+# CODEOWNERS
+#
+# The contract is the boundary between three teams.
+# The core contract, the rules, the functions and the change log are owned by
+# the platform owner. An app team can propose a change, but only the platform
+# owner can land one.
+#
+# Format: <path> <owner> [<owner> ...]
+# The LAST matching pattern wins. Keep the order from most specific to least.
+
+# --- The machine layer. The source of truth. Locked. ---
+/02-contracts/                    @safaaisaathi/platform-owner
+/VERSION                          @safaaisaathi/platform-owner
+
+# --- The security boundary. Locked. ---
+/03-rules/                        @safaaisaathi/platform-owner
+
+# --- The server half. Locked. ---
+/04-functions/                    @safaaisaathi/platform-owner
+
+# --- The change log and the decision records. Locked. ---
+/06-changes/                      @safaaisaathi/platform-owner
+/05-decisions/                    @safaaisaathi/platform-owner
+
+# --- The tooling and the workflows that run it. Locked. ---
+/08-tools/                        @safaaisaathi/platform-owner
+/.github/                         @safaaisaathi/platform-owner
+
+# --- The platform PRD. Canonical here. Locked. ---
+/01-prds/PRD-0-platform.md        @safaaisaathi/platform-owner
+
+# --- The PRD pointers. The CANONICAL copy lives in the app's own repo. ---
+# The platform owner maintains the pointer, the app team owns the content.
+/01-prds/PRD-1-user-app.md        @safaaisaathi/platform-owner @safaaisaathi/userapp-team
+/01-prds/PRD-2-driver-app.md      @safaaisaathi/platform-owner @safaaisaathi/driverapp-team
+/01-prds/PRD-3-admin-panel.md     @safaaisaathi/platform-owner @safaaisaathi/adminpanel-team
+
+# --- The context folder. Open to everyone, but the platform owner merges. ---
+/00-context/                      @safaaisaathi/platform-owner
+
+# --- The harness guides. Open to everyone. The platform owner merges. ---
+/07-guides/                       @safaaisaathi/platform-owner
+
+# --- The reference folder. Background reading. Open to everyone. ---
+/09-reference/                    @safaaisaathi/platform-owner
+
+# --- The root agent contract. Locked. ---
+/AGENTS.md                        @safaaisaathi/platform-owner
+/README.md                        @safaaisaathi/platform-owner
+/CHANGELOG.md                     @safaaisaathi/platform-owner

@@ -1,0 +1,225 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://safaaisaathi.contracts/changes/manifest.json",
+  "title": "Safai Saathi change manifest",
+  "description": "The machine-readable list of every change to the contract. Each entry pairs with a CHG-nnn-*.md file in this folder. The two change together, never one alone.",
+  "contractVersion": "1.0.0",
+  "generatedAt": "2026-11-01",
+  "changes": [
+    {
+      "id": "CHG-0001",
+      "title": "Freeze the collection and field contract",
+      "severity": "S2",
+      "priority": "P2",
+      "breaking": false,
+      "date": "2026-11-01",
+      "author": "platform-owner",
+      "contractVersion": { "from": "0.0.0", "to": "1.0.0" },
+      "affectedApps": ["driverapp", "userapp", "adminpanel"],
+      "affectedCollections": [
+        "wards", "routes", "vans", "trips", "trailChunk", "complaints",
+        "notices", "noticeReceipt", "ratings", "staff", "staffPhones",
+        "drivers", "vanDevices", "deviceTopics"
+      ],
+      "affectedFields": [],
+      "migration": {
+        "required": false,
+        "steps": [],
+        "deadline": null
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": null,
+        "oldFieldWritableUntil": null
+      },
+      "explainedIn": "CHG-0001-freeze-the-collection-and-field-contract.md",
+      "supersedes": null
+    },
+    {
+      "id": "CHG-0002",
+      "title": "Move the raw driver phone to staffPhones and mask it at the source",
+      "severity": "S1",
+      "priority": "P1",
+      "breaking": true,
+      "date": "2026-11-01",
+      "author": "platform-owner",
+      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
+      "affectedApps": ["driverapp", "adminpanel"],
+      "affectedCollections": ["drivers", "staffPhones"],
+      "affectedFields": [
+        { "path": "drivers.phone", "change": "renamed", "to": "drivers.phoneMasked" },
+        { "path": "drivers.phoneMasked", "change": "added" },
+        { "path": "staffPhones.phone", "change": "added" }
+      ],
+      "migration": {
+        "required": true,
+        "steps": [
+          "Copy drivers.phone into drivers.phoneMasked using the PHONE_MASK_FORMAT 98XXXXXX10",
+          "Move the raw value into staffPhones/{code}",
+          "Update the admin panel to read drivers.phoneMasked and staffPhones.phone",
+          "Update the driver app to read drivers.phoneMasked",
+          "Deploy the new rules LAST. The old rules keep the old clients working until then"
+        ],
+        "deadline": "2026-11-15"
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": "2026-11-15",
+        "oldFieldWritableUntil": "2026-11-15"
+      },
+      "explainedIn": "CHG-0002-mask-the-raw-driver-phone.md",
+      "supersedes": null
+    },
+    {
+      "id": "CHG-0003",
+      "title": "Scope the Firestore rules by custom claims instead of by signed-in",
+      "severity": "S1",
+      "priority": "P0",
+      "breaking": true,
+      "date": "2026-11-01",
+      "author": "platform-owner",
+      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
+      "affectedApps": ["driverapp", "userapp", "adminpanel"],
+      "affectedCollections": ["vans", "trips", "drivers", "complaints", "ratings"],
+      "affectedFields": [],
+      "migration": {
+        "required": true,
+        "steps": [
+          "Deploy the bindDeviceToVan callable so the driver app gets a vanId and a driverId claim",
+          "Deploy the bootstrapUserSession callable so the user app gets a deviceId and a routeId claim",
+          "Deploy the mintStaffToken callable so the admin panel gets role, staffId and wardIds claims",
+          "Ship the client halves that sign in with the custom token",
+          "Deploy the new rules LAST. Until then the old loose rules keep the old clients working"
+        ],
+        "deadline": "2026-11-15"
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": null,
+        "oldFieldWritableUntil": null
+      },
+      "explainedIn": "CHG-0003-scope-the-rules-by-custom-claims.md",
+      "supersedes": null
+    },
+    {
+      "id": "CHG-0004",
+      "title": "Route every admin panel write through a callable",
+      "severity": "S1",
+      "priority": "P1",
+      "breaking": true,
+      "date": "2026-11-01",
+      "author": "platform-owner",
+      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
+      "affectedApps": ["adminpanel"],
+      "affectedCollections": ["complaints", "notices", "drivers", "staff", "vans"],
+      "affectedFields": [],
+      "migration": {
+        "required": true,
+        "steps": [
+          "Deploy the five callables: setComplaintStatus, publishNotice, upsertDriver, upsertStaff, setVanDepot",
+          "Update the admin panel to call them instead of writing directly",
+          "Deploy the rules that deny every admin write"
+        ],
+        "deadline": "2026-11-15"
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": null,
+        "oldFieldWritableUntil": null
+      },
+      "explainedIn": "CHG-0004-admin-writes-go-through-callables.md",
+      "supersedes": null
+    },
+    {
+      "id": "CHG-0005",
+      "title": "Shard the GPS trail into a trail subcollection",
+      "severity": "S1",
+      "priority": "P1",
+      "breaking": true,
+      "date": "2026-11-01",
+      "author": "platform-owner",
+      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
+      "affectedApps": ["driverapp"],
+      "affectedCollections": ["trips", "trailChunk"],
+      "affectedFields": [
+        { "path": "trips.gpsTrail", "change": "removed" },
+        { "path": "trailChunk.points", "change": "added" }
+      ],
+      "migration": {
+        "required": true,
+        "steps": [
+          "Add the trail subcollection write to the driver app's tracking engine",
+          "Chunk at 1000 points per document",
+          "Read the trail by concatenating the chunks in index order",
+          "Stop writing trips.gpsTrail"
+        ],
+        "deadline": "2026-11-15"
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": "2026-11-15",
+        "oldFieldWritableUntil": "2026-11-15"
+      },
+      "explainedIn": "CHG-0005-shard-the-gps-trail.md",
+      "supersedes": null
+    },
+    {
+      "id": "CHG-0006",
+      "title": "Delete verifyDriverPin, setDriverPin and the vanSecrets collection",
+      "severity": "S1",
+      "priority": "P1",
+      "breaking": true,
+      "date": "2026-11-01",
+      "author": "platform-owner",
+      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
+      "affectedApps": ["driverapp"],
+      "affectedCollections": [],
+      "affectedFields": [],
+      "migration": {
+        "required": true,
+        "steps": [
+          "Confirm the office does not call verifyDriverPin",
+          "Delete the verifyDriverPin and setDriverPin functions",
+          "Delete the DEMO_SEED_BYPASS path inside setDriverPin",
+          "Delete the cloud_functions dependency from pubspec.yaml",
+          "Verify with: grep -rn 'verifyDriverPin|setDriverPin|vanSecrets|DEMO_SEED_BYPASS' lib/ functions/src/ scripts/. Zero hits"
+        ],
+        "deadline": "2026-11-15"
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": null,
+        "oldFieldWritableUntil": null
+      },
+      "explainedIn": "CHG-0006-delete-the-pin-flow.md",
+      "supersedes": null
+    },
+    {
+      "id": "CHG-0007",
+      "title": "Set the arrival alert radius to 100 m from the ward boundary",
+      "severity": "S2",
+      "priority": "P2",
+      "breaking": false,
+      "date": "2026-11-01",
+      "author": "platform-owner",
+      "contractVersion": { "from": "1.0.0", "to": "1.1.0" },
+      "affectedApps": ["userapp"],
+      "affectedCollections": ["wards"],
+      "affectedFields": [],
+      "migration": {
+        "required": false,
+        "steps": [
+          "The constant lives in 02-contracts/constants.json. Change it there, not in the code"
+        ],
+        "deadline": null
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": null,
+        "oldFieldWritableUntil": null
+      },
+      "explainedIn": "CHG-0007-arrival-alert-radius-100m.md",
+      "supersedes": null
+    }
+  ],
+  "x-rules": {
+    "together": "Every entry pairs with its explainedIn file. They change in the same commit.",
+    "severity": "S0 emergency, S1 breaking, S2 new capability, S3 additive, S4 internal. See 02-contracts/severity-policy.md.",
+    "priority": "P0 to P4. Severity plus impact.",
+    "migrationRequired": "An S1 or S2 entry without migration.steps cannot merge.",
+    "collectionNaming": "affectedCollections names the Firestore collection, plural, so a developer can grep for it. A subcollection is named by its schema file's base name, singular, because its Firestore path is not a top-level collection. Both forms resolve, because 08-tools/check-consistency.ts maps the plural to the singular schema."
+  }
+}

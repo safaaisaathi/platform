@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://safaaisaathi.contracts/collections/trip.schema.json",
+  "title": "Trip",
+  "description": "One work session. The record of what happened. PRD-2 section 3.3.",
+  "type": "object",
+  "x-docId": "auto",
+  "x-writes": ["driverapp", "platform functions: alertedWardIds", "platform functions: endedAt, status"],
+  "x-reads": ["driverapp", "userapp", "adminpanel", "platform functions"],
+  "properties": {
+    "vanId": { "type": "string" },
+    "routeId": {
+      "type": "string",
+      "description": "A SNAPSHOT of vans.routeId at shift start. If the office reassigns the van mid-shift, today's trip keeps its scope."
+    },
+    "driverId": {
+      "type": "string",
+      "description": "The CONFIRMED driver code. The office's accountability field. This is a claim value, never a badge code the client sent."
+    },
+    "wardIds": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "A SNAPSHOT of the driver's allotment at shift start. The D4 complaint rule scopes on this. A mid-shift change to the allotment does not rewrite today's record."
+    },
+    "date": {
+      "type": "string",
+      "format": "date-time",
+      "description": "The IST midnight instant of the shift's day. NOT a date string. Both reads and writes build the window in the write frame."
+    },
+    "startedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Client clock. A known weakness. The server-computed date field is added alongside, not replacing, this one."
+    },
+    "endedAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "Null while the shift is live."
+    },
+    "wardsDone": {
+      "type": "array",
+      "description": "The wards recorded as collected. Out-of-order marks are allowed.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "wardId": { "type": "string" },
+          "doneAt": { "type": "string", "format": "date-time" },
+          "flagged": {
+            "type": "boolean",
+            "description": "True when the driver marked the ward done from outside its radius. A tamper signal for the office."
+          }
+        },
+        "required": ["wardId", "doneAt"]
+      }
+    },
+    "alertedWardIds": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "The arrival-alert bookkeeping. THE IDEMPOTENCY GUARD. Without it, the 10-second location cadence sends a push every 10 seconds."
+    },
+    "gpsTrail": {
+      "type": "array",
+      "description": "The location trail. THE 1 MiB CLIFF. A Firestore document is capped at 1 MiB, so the trail is SHARDED into trips/{id}/trail subcollection documents. This array is the legacy shape.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "lat": { "type": "number" },
+          "lng": { "type": "number" },
+          "t": { "type": "string", "format": "date-time" }
+        },
+        "required": ["lat", "lng", "t"]
+      }
+    },
+    "mockLocationDetected": {
+      "type": "boolean",
+      "description": "A one-way latch. Once true it stays true. The office should be pushed."
+    }
+  },
+  "required": ["vanId", "routeId", "driverId", "date", "startedAt", "wardsDone", "alertedWardIds"]
+}

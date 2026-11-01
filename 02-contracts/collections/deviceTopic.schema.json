@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://safaaisaathi.contracts/collections/deviceTopic.schema.json",
+  "title": "Device Topic",
+  "description": "Which device is subscribed to which FCM topic. OPTIONAL, Phase 11. Not needed today.",
+  "type": "object",
+  "x-docId": "the Firebase uid",
+  "x-status": "OPTIONAL. The platform uses staff topics instead, so no registry is needed for the current push set.",
+  "x-writes": ["client, scoped by request.auth.uid"],
+  "x-reads": ["platform functions ONLY"],
+  "x-when-you-need-it": "The ONLY push that would need it is a driver-targeted push that is not a notice. The mock-location alert goes to the office, not to the driver. If a driver-targeted push is ever required, this collection and its rule go into the rules rewrite, not after.",
+  "properties": {
+    "uid": { "type": "string" },
+    "topics": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "vanId": {
+      "type": ["string", "null"],
+      "description": "Which van this device is working."
+    },
+    "fcmTokens": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "The device's FCM tokens, for targeted pushes."
+    },
+    "updatedAt": { "type": "string", "format": "date-time" }
+  },
+  "required": ["uid", "topics", "updatedAt"]
+}

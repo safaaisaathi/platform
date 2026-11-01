@@ -1,0 +1,32 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# The compiled Functions output. The source lives in 04-functions/src.
+04-functions/lib/
+04-functions/.cache/
+*.tsbuildinfo
+
+# Firebase
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+*.local
+
+# Secrets. Never commit any of these.
+*.pem
+*-key.json
+serviceAccount*.json
+.env
+.env.*
+!.env.example
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp

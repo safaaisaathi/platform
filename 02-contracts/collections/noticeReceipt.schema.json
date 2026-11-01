@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://safaaisaathi.contracts/collections/noticeReceipt.schema.json",
+  "title": "Notice Receipt",
+  "description": "One driver's read-state for one notice. The fix for the session-local unread dot.",
+  "type": "object",
+  "x-path": "notices/{noticeId}/receipts/{driverCode}",
+  "x-docId": "AB-1234",
+  "x-writes": ["driverapp"],
+  "x-reads": ["driverapp"],
+  "x-why-subcollection": "A targetType of 'all' notice is read by every driver. An array on the notice doc would grow without bound. A subcollection keeps each driver's read-state to one small doc.",
+  "properties": {
+    "readAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": ["readAt"]
+}

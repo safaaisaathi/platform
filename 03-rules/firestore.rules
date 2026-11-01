@@ -1,0 +1,48 @@
+rules_version = '2';
+// Safai Sathi driver-app dev rules — small, scoped, and loose ONLY where
+// the driver flows need it during the dev stage. TIGHTENED at the
+// integration/pentest sweep (docs/agents/issue-tracker.md ticket) —
+// expectations tracked there.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // READS: only the seeded public collections, only signed-in app users.
+    match /vans/{vanId} {
+      allow read: if request.auth != null;
+      // 0.8 write scope: the driver's own van writes only (location /
+      // status / battery / currentTripId), nothing else. `depot` (ruling
+      // #29) is deliberately absent: it is an ADMIN tag, written from the
+      // console / PRD-3 panel, never by the driver app.
+      allow update: if request.auth != null
+        && request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['lastLocation', 'status', 'batteryPct', 'currentTripId']);
+    }
+    match /routes/{routeId} {
+      allow read: if request.auth != null;
+    }
+    match /wards/{wardId} {
+      allow read: if request.auth != null;
+    }
+    match /notices/{noticeId} {
+      allow read: if request.auth != null;
+    }
+    // 0.16: driver identity, keyed by the driver code (AB-1234). Read by
+    // the start-shift flow; writes are admin-only (console / PRD-3 panel).
+    match /drivers/{code} {
+      allow read: if request.auth != null;
+    }
+    match /trips/{tripId} {
+      allow read: if request.auth != null;
+      // Trips are created by the start-shift flow and updated while a
+      // shift is live (wardsDone / alertedWardIds / gpsTrail / endedAt).
+      allow create, update: if request.auth != null;
+    }
+    match /complaints/{complaintId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      // D4 (F-D6, PRD-2 §3 "Pending Reports"): "Will Revisit" sets
+      // status = assigned, "Done" sets status = resolved + resolvedAt.
+      // Without `allow update` every D4 button failed in production.
+      allow update: if request.auth != null;
+    }
+  }
+}

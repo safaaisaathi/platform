@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://safaaisaathi.contracts/callables.json",
+  "title": "Safai Saathi callable contracts",
+  "description": "Every Cloud Function the clients may call, with its input, its output and its reason codes. A callable is the right mechanism when a LIVE DOCUMENT is the authority. A rule is the right mechanism when a CLAIM is the authority.",
+  "x-decision-rule": {
+    "rule": "A write is a rule when the claim is the authority, and a callable when a live document is the authority.",
+    "why": "A token's claims are a snapshot. They can be up to an hour old. If the authority is a live document, only the server can see the current value, so only the server can make the decision.",
+    "examples": [
+      { "write": "The driver writes its own van's telemetry", "authority": "The vanId claim", "mechanism": "rule" },
+      { "write": "The citizen files their own complaint", "authority": "The deviceId claim", "mechanism": "rule" },
+      { "write": "The admin resolves a complaint", "authority": "The live staff doc", "mechanism": "callable" }
+    ]
+  },
+  "x-callables": {
+    "bindDeviceToVan": {
+      "type": "https.onCall",
+      "status": "NEW. Not implemented.",
+      "calledBy": ["driverapp"],
+      "purpose": "Bind an install id to a van and mint the driver's custom token. The identity anchor.",
+      "input": {
+        "driverCode": { "type": "string", "pattern": "^[A-Z]{2}-[0-9]{4}$", "required": true },
+        "installId": { "type": "string", "required": true, "note": "A stable per-install uuid. NOT a per-launch value. Otherwise a second launch creates a second binding." }
+      },
+      "output": {
+        "token": { "type": "string" },
+        "vanId": { "type": "string" },
+        "driverId": { "type": "string" },
+        "claimMode": { "type": "string", "enumRef": "enums.json#/$defs/vanDevice.claimMode" }
+      },
+      "reasonCodes": ["vanAlreadyClaimed", "invalidInput", "rateLimited", "notAuthorised", "internal"],
+      "authority": {
+        "reads": ["drivers/{driverCode}", "vanDevices/{vanId}"],
+        "writes": ["vanDevices/{vanId}"],
+        "transaction": "A Firestore transaction on vanDevices/{vanId}. Two phones presenting the same code at the same time both try to claim. The transaction settles it. The loser gets vanAlreadyClaimed, not a silent double-bind."
+      },
+      "firstClaim": {
+        "mode": "firstClaim",
+        "decidedBy": "The office, 2026-11-01. Q1.",
+        "checks": [
+          "The driver exists in drivers/{driverCode}",
+          "drivers.vanId matches the van this phone is claiming",
+          "vanDevices/{vanId} does not exist yet, OR its installId matches this installId"
+        ],
+        "onCreate": "Create vanDevices/{vanId} with installId, boundAt, boundBy, claimMode = firstClaim.",
+        "onMatch": "Return the existing binding. Do NOT rewrite it.",
+        "wrongClaimRecovery": "Delete the vanDevices/{vanId} doc from the Firebase console. The next phone can claim. This MUST be a documented runbook step, because there is no admin console."
+      },
+      "hardening": {
+        "phase": 11,
+        "mode": "preProvisioned",
+        "what": "The callable only matches. It never creates. The office pre-provisions vanDevices/{vanId} with the expected install id."
+      },
+      "rateLimit": "BIND_RATE_LIMIT_MAX attempts per BIND_RATE_LIMIT_WINDOW_MIN minutes. This is the oracle guard: without it, the callable is a way to test whether a code exists."
+    },
+    "bootstrapUserSession": {
+      "type": "https.onCall",
+      "status": "NEW. Not implemented.",
+      "calledBy": ["userapp"],
+      "purpose": "The user app's session bootstrap. Resolves the citizen's ward to a route and mints the token.",
+      "input": {
+        "deviceId": { "type": "string", "required": true },
+        "wardId": { "type": "string", "required": true }
+      },
+      "output": {
+        "token": { "type": "string" },
+        "deviceId": { "type": "string" },
+        "routeId": { "type": "string" }
+      },
+      "reasonCodes": ["notFound", "invalidInput", "internal"],
+      "authority": {
+        "reads": ["wards/{wardId}"],
+        "writes": [],
+        "note": "The routeId comes from the ward doc, NOT from the client. If the client chose its own routeId it could read any route's trips. This is the same bug class as the badge code as a client parameter."
+      },
+      "deviceIdTrust": "The callable cannot verify that deviceId is a real device id, and it does not need to. The claim's job is to make the client unable to CHANGE its scope after sign-in, not to prove the device is genuine.",
+      "refreshRule": "The citizen moves to a ward on a different route. The app re-runs the bootstrap and gets a fresh token. Moving within the same route needs nothing."
+    },
+    "mintStaffToken": {
+      "type": "https.onCall",
+      "status": "NEW. Not implemented.",
+      "calledBy": ["adminpanel"],
+      "purpose": "The admin panel's session. Reads the staff doc and mints the staff claims.",
+      "input": {
+        "staffId": { "type": "string", "required": true }
+      },
+      "output": {
+        "token": { "type": "string" },
+        "role": { "type": "string", "enumRef": "enums.json#/$defs/staff.role" },
+        "staffId": { "type": "string" },
+        "wardIds": { "type": "string[]" },
+        "scopeRefreshedAt": { "type": "string", "format": "date-time", "note": "The panel shows this so the office knows the scope may be stale." }
+      },
+      "reasonCodes": ["notAuthorised", "notFound", "internal"],
+      "authority": {
+        "reads": ["staff/{staffId}"],
+        "writes": [],
+        "note": "The staff scope comes from the live doc, not from a form field. Otherwise a client could mint itself an inspector's scope."
+      },
+      "revocation": "Setting staff/{staffId}.active = false must lock the staff member out IMMEDIATELY, even with a live token. That is why every admin write also goes through a callable that re-reads the staff doc. See Q5 and ADR-0003."
+    },
+    "startShift": {
+      "type": "https.onCall",
+      "status": "NEW. Not implemented.",
+      "calledBy": ["driverapp"],
+      "purpose": "Start the driver's shift. Creates the trip and sets the van's open-trip marker, atomically.",
+      "input": {
+        "driverId": { "type": "string", "required": true },
+        "date": { "type": "string", "format": "date-time", "required": true, "note": "The IST midnight instant of the shift's day, not a date string." }
+      },
+      "output": {
+        "token": { "type": "string", "note": "A fresh token with currentTripId." },
+        "tripId": { "type": "string" },
+        "vanId": { "type": "string" }
+      },
+      "reasonCodes": ["vanHeldByAnotherDriver", "staleMarker", "invalidInput", "internal"],
+      "authority": {
+        "reads": ["vans/{vanId}", "trips/{currentTripId}", "drivers/{driverId}"],
+        "writes": ["trips/{newTripId}", "vans/{vanId}"],
+        "transaction": "On the van document. If van.currentTripId is set and status is on_shift, read the trip. If trip.driverId is not this driver, reject with vanHeldByAnotherDriver. If trip.vanId is not this van, reject with staleMarker. Otherwise RESUME and write nothing. Else create the trip and set the marker."
+      },
+      "resumeWritesNothing": "The resume branch creates no second trip. A resume never duplicates.",
+      "whyNotARule": "The duplicate-trip race is real. Two clients on one van both read 'no open trip', both create a trip, and both write vans.currentTripId. The last write wins and one shift is orphaned."
+    },
+    "endShift": {
+      "type": "https.onCall",
+      "status": "NEW. Not implemented.",
+      "calledBy": ["driverapp"],
+      "purpose": "End the driver's shift. Closes the trip and clears the van's marker.",
+      "input": { "tripId": { "type": "string", "required": true } },
+      "output": { "endedAt": { "type": "string", "format": "date-time" } },
+      "reasonCodes": ["notAuthorised", "notFound", "internal"],
+      "authority": {
+        "reads": ["trips/{tripId}", "vans/{vanId}"],
+        "writes": ["trips/{tripId}", "vans/{vanId}"],
+        "transaction": "On the van document. Clear currentTripId only if it still points at this trip."
+      }
+    },
+    "markWardDone": {
+      "type": "https.onCall",
+      "status": "NEW. Not implemented.",
+      "calledBy": ["driverapp"],
+      "purpose": "Record a ward as collected during the current trip.",
+      "input": {
+        "tripId": { "type": "string", "required": true },
+        "wardId": { "type": "string", "required": true },
+        "flagged": { "type": "boolean", "required": false, "note": "True when the driver marked the ward done from outside its radius. A tamper signal for the office." }
+      },
+      "output": { "wardsDone": { "type": "array" } },
+      "reasonCodes": ["notAuthorised", "notFound", "invalidInput", "internal"],
+      "authority": {
+        "reads": ["trips/{tripId}"],
+        "writes": ["trips/{tripId}"],
+        "scope": "The ward must be in the trip's wardIds snapshot. The snapshot is taken at shift start, so a mid-shift change to the driver's allotment does not rewrite today's record."
+      },
+      "outOfOrder": "Marks may be made out of order. Any undone ward counts, not only the next one."
+    },
+    "setComplaintStatus": {
+      "type": "https.onCall",
+      "status": "NEW. Not implemented.",
+      "calledBy": ["adminpanel"],
+      "purpose": "The admin panel resolves, assigns or escalates a complaint.",
+      "input": {
+        "complaintId": { "type": "string", "required": true },
+        "status": { "type": "string", "enumRef": "enums.json#/$defs/complaint.status", "required": true },
+        "note": { "type": "string", "required": false }
+      },
+      "output": { "updatedAt": { "type": "string", "format": "date-time" } },
+      "reasonCodes": ["notAuthorised", "notFound", "invalidInput", "internal"],
+      "authority": {
+        "reads": ["staff/{staffId}", "complaints/{complaintId}", "wards/{wardId}"],
+        "writes": ["complaints/{complaintId}"],
+        "checks": [
+          "The caller is authenticated",
+          "staff/{staffId}.active is true. This is the instant-revocation check.",
+          "The complaint's wardId is in the live staff wardIds scope"
+        ],
+        "whyNotARule": "A revoked staff member's token stays valid for up to an hour. A rules-only check cannot lock them out immediately."
+      }
+    },
+    "publishNotice": {
+      "type": "https.onCall",
+      "status": "NEW. Not implemented.",
+      "calledBy": ["adminpanel"],
+      "purpose": "The admin panel sends a notice to a van, a ward, or everyone.",
+      "input": {
+        "targetType": { "type": "string", "enumRef": "enums.json#/$defs/notice.targetType", "required": true },
+        "targetId": { "type": "string", "required": false, "note": "Null or empty for targetType = all." },
+        "message": { "type": "string", "required": true }
+      },
+      "output": { "noticeId": { "type": "string" } },
+      "reasonCodes": ["notAuthorised", "invalidInput", "internal"],
+      "authority": {
+        "reads": ["staff/{staffId}"],
+        "writes": ["notices/{noticeId}"],
+        "sideEffect": "Sends the FCM push to the topic. Uses the topics.json map."
+      }
+    },
+    "upsertDriver": {
+      "type": "https.onCall",
+      "status": "NEW. Not implemented.",
+      "calledBy": ["adminpanel"],
+      "purpose": "Create or update a driver record. Masks the phone on the way in.",
+      "input": {
+        "code": { "type": "string", "pattern": "^[A-Z]{2}-[0-9]{4}$", "required": true },
+        "name": { "type": "string", "required": true },
+        "phone": { "type": "string", "required": true, "note": "The RAW phone. The callable masks it into phoneMasked and stores the raw value in staffPhones/{code}." },
+        "vanId": { "type": "string", "required": false },
+        "routeId": { "type": "string", "required": false },
+        "wardIds": { "type": "string[]", "required": false },
+        "active": { "type": "boolean", "required": false }
+      },
+      "output": { "code": { "type": "string" }, "phoneMasked": { "type": "string" } },
+      "reasonCodes": ["notAuthorised", "invalidInput", "internal"],
+      "authority": {
+        "reads": ["staff/{staffId}"],
+        "writes": ["drivers/{code}", "staffPhones/{code}"],
+        "masking": "The mask is applied at the SOURCE, not by the reader. The driver app's read rule is field-restricted so the raw phone cannot leak through the same doc. A collection-level rule is not enough."
+      }
+    },
+    "upsertStaff": {
+      "type": "https.onCall",
+      "status": "NEW. Not implemented.",
+      "calledBy": ["adminpanel"],
+      "purpose": "Create or update a staff member. Changing active to false revokes them immediately.",
+      "input": {
+        "staffId": { "type": "string", "required": true },
+        "name": { "type": "string", "required": true },
+        "role": { "type": "string", "enumRef": "enums.json#/$defs/staff.role", "required": true },
+        "wardIds": { "type": "string[]", "required": true },
+        "talukaId": { "type": "string", "required": false },
+        "phone": { "type": "string", "required": false },
+        "active": { "type": "boolean", "required": true }
+      },
+      "output": { "staffId": { "type": "string" } },
+      "reasonCodes": ["notAuthorised", "invalidInput", "internal"],
+      "authority": {
+        "reads": ["staff/{staffId}"],
+        "writes": ["staff/{staffId}", "staffPhones/{staffId}"],
+        "revocation": "active = false. The next admin action by that staff member fails at the callable's live check, even if their token is still valid."
+      }
+    },
+    "setVanDepot": {
+      "type": "https.onCall",
+      "status": "NEW. Not implemented.",
+      "calledBy": ["adminpanel"],
+      "purpose": "Set the van's depot tag. The driver never writes this.",
+      "input": {
+        "vanId": { "type": "string", "required": true },
+        "lat": { "type": "number", "required": true },
+        "lng": { "type": "number", "required": true }
+      },
+      "output": { "vanId": { "type": "string" } },
+      "reasonCodes": ["notAuthorised", "notFound", "invalidInput", "internal"],
+      "authority": {
+        "reads": ["staff/{staffId}"],
+        "writes": ["vans/{vanId}"],
+        "note": "This is the depot auto-end tag. The dwell DECISION is currently client-side. The server-side sweep is a separate scheduled Function."
+      }
+    }
+  },
+  "x-family": {
+    "note": "The three session-minting callables are one shape: check the caller, read the authoritative document, mint the token with the claims that document says, return it. The client asks, the server answers.",
+    "minting": ["bindDeviceToVan", "bootstrapUserSession", "mintStaffToken"],
+    "adminWrites": ["setComplaintStatus", "publishNotice", "upsertDriver", "upsertStaff", "setVanDepot"]
+  }
+}

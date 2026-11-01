@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://safaaisaathi.contracts/agent-manifest.json",
+  "title": "Safai Saathi platform agent manifest",
+  "description": "The machine-readable map of this repository. An AI harness reads this first to learn where everything is, who owns what, and which command verifies what. It is generated from the repo layout, so it does not drift.",
+  "contractVersion": "1.0.0",
+  "root": ".",
+  "paths": {
+    "version": "VERSION",
+    "agents": "AGENTS.md",
+    "contracts": "02-contracts",
+    "rules": "03-rules",
+    "functions": "04-functions",
+    "decisions": "05-decisions",
+    "changes": "06-changes",
+    "guides": "07-guides",
+    "tools": "08-tools",
+    "reference": "09-reference"
+  },
+  "commands": {
+    "validate": {
+      "command": "node 08-tools/validate-contract.ts",
+      "expect": "contract valid",
+      "meaning": "Every schema is valid. Every enum resolves. Every constant's type matches."
+    },
+    "consistency": {
+      "command": "node 08-tools/check-consistency.ts",
+      "expect": "manifest consistent",
+      "meaning": "The schema and the changelog agree. Every affected field exists. Every change has an explanation file. Every PRD pointer names fields that still exist."
+    },
+    "tables": {
+      "command": "python3 08-tools/check-tables.py",
+      "expect": "check-tables: all markdown tables are well formed",
+      "meaning": "Every markdown table in this repo has a consistent column count."
+    },
+    "links": {
+      "command": "python3 08-tools/check-links.py",
+      "expect": "check-links: every relative markdown link resolves",
+      "meaning": "Every relative markdown link in this repo points at a file that exists."
+    },
+    "adoption": {
+      "command": "node 08-tools/check-adoption.ts <app-repo-path>",
+      "expect": "a per-app table",
+      "meaning": "Which app is behind on which change."
+    },
+    "build": {
+      "command": "node 08-tools/build-schemas.ts",
+      "expect": "the composed schemas written",
+      "meaning": "Compose the core schemas with the extensions into strict runtime schemas."
+    },
+    "sync": {
+      "command": "node 08-tools/sync-contract.ts <app-repo-path>",
+      "expect": "the copied file list",
+      "meaning": "Copy the contract into an app repo's .contract/vendor/ and write the fingerprint."
+    },
+    "bump": {
+      "command": "node 08-tools/bump-contract.ts <app-repo-path> <version>",
+      "expect": "a diff summary",
+      "meaning": "Move an app repo's pinned contract version."
+    },
+    "exportDart": {
+      "command": "node 08-tools/export-dart-constants.ts <app-repo-path>",
+      "expect": "the output path",
+      "meaning": "Generate the Dart constants file from constants.json."
+    },
+    "exportTs": {
+      "command": "node 08-tools/export-ts-constants.ts <app-repo-path>",
+      "expect": "the output path",
+      "meaning": "Generate the TypeScript constants file from constants.json."
+    }
+  },
+  "collections": [
+    { "name": "wards", "schema": "02-contracts/collections/ward.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["adminpanel", "platform-owner"], "readBy": ["driverapp", "userapp", "adminpanel", "functions"] },
+    { "name": "routes", "schema": "02-contracts/collections/route.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["adminpanel"], "readBy": ["driverapp", "userapp", "adminpanel", "functions"] },
+    { "name": "vans", "schema": "02-contracts/collections/van.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["driverapp", "functions", "adminpanel"], "readBy": ["driverapp", "userapp", "adminpanel", "functions"] },
+    { "name": "trips", "schema": "02-contracts/collections/trip.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["driverapp", "functions"], "readBy": ["driverapp", "userapp", "adminpanel", "functions"] },
+    { "name": "trail", "schema": "02-contracts/collections/trailChunk.schema.json", "path": "trips/{tripId}/trail/{n}", "rules": "03-rules/firestore.rules", "writtenBy": ["driverapp"], "readBy": ["driverapp", "adminpanel"] },
+    { "name": "complaints", "schema": "02-contracts/collections/complaint.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["userapp", "driverapp", "adminpanel", "functions"], "readBy": ["userapp", "driverapp", "adminpanel", "functions"] },
+    { "name": "notices", "schema": "02-contracts/collections/notice.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["adminpanel"], "readBy": ["driverapp", "userapp", "adminpanel"] },
+    { "name": "receipts", "schema": "02-contracts/collections/noticeReceipt.schema.json", "path": "notices/{noticeId}/receipts/{driverCode}", "rules": "03-rules/firestore.rules", "writtenBy": ["driverapp"], "readBy": ["driverapp"] },
+    { "name": "ratings", "schema": "02-contracts/collections/rating.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["userapp"], "readBy": ["userapp", "adminpanel"] },
+    { "name": "staff", "schema": "02-contracts/collections/staff.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["adminpanel"], "readBy": ["adminpanel", "functions"] },
+    { "name": "staffPhones", "schema": "02-contracts/collections/staffPhone.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["adminpanel"], "readBy": ["adminpanel"] },
+    { "name": "drivers", "schema": "02-contracts/collections/driver.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["adminpanel"], "readBy": ["driverapp", "adminpanel"] },
+    { "name": "vanDevices", "schema": "02-contracts/collections/vanDevice.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["functions"], "readBy": ["functions"] },
+    { "name": "deviceTopics", "schema": "02-contracts/collections/deviceTopic.schema.json", "rules": "03-rules/firestore.rules", "status": "optional", "writtenBy": ["client"], "readBy": ["functions"] }
+  ],
+  "enums": { "path": "02-contracts/enums.json" },
+  "constants": { "path": "02-contracts/constants.json" },
+  "claims": { "path": "02-contracts/claims.json" },
+  "topics": { "path": "02-contracts/topics.json" },
+  "callables": { "path": "02-contracts/callables.json" },
+  "errors": { "path": "02-contracts/errors.json" },
+  "designTokens": { "path": "02-contracts/design-tokens.json" },
+  "extensions": { "path": "02-contracts/extensions/registry.json" },
+  "severityPolicy": { "path": "02-contracts/severity-policy.md" },
+  "apps": {
+    "driverapp": {
+      "repo": "safaaisaathi/driverapp",
+      "stack": "Flutter",
+      "platforms": ["Android"],
+      "firebaseAppId": "1:179594621556:android:8bdac1de2d29745aad1721",
+      "auth": "anonymous, then a custom token from bindDeviceToVan",
+      "contractPath": ".contract/vendor/02-contracts"
+    },
+    "userapp": {
+      "repo": "safaaisaathi/userapp",
+      "stack": "Flutter",
+      "platforms": ["Android", "iOS"],
+      "firebaseAppId": "TO BE REGISTERED",
+      "auth": "anonymous, then a custom token from bootstrapUserSession",
+      "contractPath": ".contract/vendor/02-contracts"
+    },
+    "adminpanel": {
+      "repo": "safaaisaathi/adminpanel",
+      "stack": "React / Next.js",
+      "platforms": ["Web"],
+      "firebaseAppId": "TO BE REGISTERED",
+      "auth": "email, then a custom token from mintStaffToken",
+      "contractPath": ".contract/vendor/02-contracts"
+    }
+  },
+  "firebase": {
+    "projectId": "safaaisaathi-63a87",
+    "services": ["firestore", "firestore-rules", "functions", "auth", "fcm", "storage"],
+    "emulators": ["auth", "firestore"],
+    "emulatorCaveat": "The Firestore emulator enforces the rules but NOT composite indexes. A green emulator run is not proof of index coverage."
+  },
+  "x-rules": {
+    "readBudget": "Do not read 09-reference/ to answer a contract question. Read 02-contracts/.",
+    "oneDirection": "The platform does not depend on an app repo. An app repo depends on the platform.",
+    "verifyFirst": "Run the validate and consistency commands before reporting a change as done."
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "name": "@safaaisaathi/platform-tools",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Validation, consistency, adoption, sync and export tooling for the Safai Saathi shared contract.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "validate": "node --experimental-strip-types validate-contract.ts",
+    "consistency": "node --experimental-strip-types check-consistency.ts",
+    "adoption": "node --experimental-strip-types check-adoption.ts",
+    "build": "node --experimental-strip-types build-schemas.ts",
+    "sync": "node --experimental-strip-types sync-contract.ts",
+    "bump": "node --experimental-strip-types bump-contract.ts",
+    "export:dart": "node --experimental-strip-types export-dart-constants.ts",
+    "export:ts": "node --experimental-strip-types export-ts-constants.ts",
+    "tables": "python3 check-tables.py",
+    "links": "python3 check-links.py",
+    "check": "npm run validate && npm run consistency && npm run tables && npm run links"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://safaaisaathi.contracts/extensions/registry.json",
+  "title": "Safai Saathi extension registry",
+  "description": "Which app owns which extension. The platform owns the REGISTRATION. The app owns the FILE. A hash mismatch means the app changed its extension without re-registering, and CI fails.",
+  "x-empty-ok": true,
+  "x-note": "An app with no extension needs no entry. The registry is the platform's view of app-owned additions to the core collections.",
+  "apps": {}
+}

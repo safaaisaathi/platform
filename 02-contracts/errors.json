@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://safaaisaathi.contracts/errors.json",
+  "title": "Safai Saathi reason codes",
+  "description": "The reason-code vocabulary the server sends. The server sends a code. The client owns the words. A server that sends English text to the app breaks localization the moment the copy is edited, and it puts presentation inside the server where three apps would each need a different wording.",
+  "x-principle": "The server sends a reason code, the client owns the words.",
+  "x-codes": {
+    "vanHeldByAnotherDriver": {
+      "severity": "conflict",
+      "sentBy": ["startShift"],
+      "meaning": "The van is on shift with another driver. trips.driverId is set and is not this driver.",
+      "appCopyKey": "identityShiftConflictOtherDriver",
+      "appPhase": "startConflict",
+      "retryable": false,
+      "offerDifferentDriver": true
+    },
+    "vanAlreadyClaimed": {
+      "severity": "conflict",
+      "sentBy": ["bindDeviceToVan"],
+      "meaning": "Another phone already holds the device-to-van binding. This is Q1's first-claim race.",
+      "appCopyKey": "identityShiftConflictClaimed",
+      "appPhase": "startConflict",
+      "retryable": false,
+      "offerDifferentDriver": true
+    },
+    "staleMarker": {
+      "severity": "conflict",
+      "sentBy": ["startShift"],
+      "meaning": "vans.currentTripId points at a trip of a different van. The marker is out of date.",
+      "appCopyKey": "identityShiftConflictStaleMarker",
+      "appPhase": "startConflict",
+      "retryable": false,
+      "offerDifferentDriver": false
+    },
+    "notAuthorised": {
+      "severity": "auth",
+      "sentBy": ["all callables"],
+      "meaning": "The caller is not allowed to do this. The token's claims do not match the action.",
+      "appCopyKey": "errorNotAuthorised",
+      "appPhase": "error",
+      "retryable": false
+    },
+    "notFound": {
+      "severity": "client",
+      "sentBy": ["all callables"],
+      "meaning": "The referenced document does not exist. A stale id, usually.",
+      "appCopyKey": "errorNotFound",
+      "appPhase": "error",
+      "retryable": false
+    },
+    "invalidInput": {
+      "severity": "client",
+      "sentBy": ["all callables"],
+      "meaning": "The input failed validation. The driver code did not match DRIVER_CODE_PATTERN, for example.",
+      "appCopyKey": "errorInvalidInput",
+      "appPhase": "error",
+      "retryable": false
+    },
+    "rateLimited": {
+      "severity": "client",
+      "sentBy": ["bindDeviceToVan", "checkComplaintRate"],
+      "meaning": "Too many attempts in the window. This is the device-claim oracle guard.",
+      "appCopyKey": "errorRateLimited",
+      "appPhase": "error",
+      "retryable": true,
+      "retryAfterSec": 600
+    },
+    "offline": {
+      "severity": "client",
+      "sentBy": ["all callables"],
+      "meaning": "The device has no network. The client buffers the action and retries it. The server never sees this code; the client detects it locally.",
+      "appCopyKey": "errorOffline",
+      "appPhase": "offline",
+      "retryable": true
+    },
+    "internal": {
+      "severity": "server",
+      "sentBy": ["all callables"],
+      "meaning": "An unexpected server failure. The client shows a generic message and the raw error goes to the log, never to the user.",
+      "appCopyKey": "errorInternal",
+      "appPhase": "error",
+      "retryable": true
+    }
+  },
+  "x-rules": {
+    "neverReuse": "Do not reuse a code for a different meaning. The client switches on the code, and a reused code silently changes the wording.",
+    "neverSendText": "Never send an English message from the server. The reason code is the whole payload.",
+    "neverShowRaw": "Never show a raw exception text, a stack trace or an error code to the user. The client maps the code to its own localized string.",
+    "conflictIsNotFailure": "A conflict is not a failure. It is a distinct phase with its own copy and its own CTA. Do not route a conflict code through the generic error path."
+  }
+}

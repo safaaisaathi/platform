@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://safaaisaathi.contracts/changes/adoption.json",
+  "title": "Safai Saathi adoption record",
+  "description": "Who has caught up with which change. Each app updates its own record in its own repo, in .contract/adopted.json. This file is the platform's aggregated view. It is a REPORT, not a source of truth. The truth is each app's own file.",
+  "generatedAt": "2026-11-01",
+  "apps": {
+    "driverapp": {
+      "repo": "safaaisaathi/driverapp",
+      "contractVersion": "1.0.0",
+      "extensionVersion": "0",
+      "coreChanges": {
+        "CHG-0001": { "status": "adopted", "progress": 1, "verifiedAt": "2026-11-01T10:00:00Z" },
+        "CHG-0002": { "status": "not_started", "progress": 0, "urgency": "before_release" },
+        "CHG-0003": { "status": "not_started", "progress": 0, "urgency": "immediate" },
+        "CHG-0004": { "status": "not_applicable", "progress": null, "note": "The admin panel is the only affected app." },
+        "CHG-0005": { "status": "not_started", "progress": 0, "urgency": "before_release" },
+        "CHG-0006": { "status": "not_started", "progress": 0, "urgency": "before_release" },
+        "CHG-0007": { "status": "not_applicable", "progress": null, "note": "The user app owns the arrival display." }
+      }
+    },
+    "userapp": {
+      "repo": "safaaisaathi/userapp",
+      "contractVersion": "1.0.0",
+      "extensionVersion": "0",
+      "coreChanges": {
+        "CHG-0001": { "status": "adopted", "progress": 1, "verifiedAt": "2026-11-01T10:00:00Z" },
+        "CHG-0002": { "status": "not_applicable", "progress": null, "note": "The user app never reads the driver phone." },
+        "CHG-0003": { "status": "not_started", "progress": 0, "urgency": "immediate" },
+        "CHG-0004": { "status": "not_applicable", "progress": null, "note": "The admin panel is the only affected app." },
+        "CHG-0005": { "status": "not_applicable", "progress": null, "note": "The driver app owns the trail write." },
+        "CHG-0006": { "status": "not_applicable", "progress": null, "note": "The driver app owns the PIN flow deletion." },
+        "CHG-0007": { "status": "not_started", "progress": 0, "urgency": "scheduled" }
+      }
+    },
+    "adminpanel": {
+      "repo": "safaaisaathi/adminpanel",
+      "contractVersion": "1.0.0",
+      "extensionVersion": "0",
+      "coreChanges": {
+        "CHG-0001": { "status": "adopted", "progress": 1, "verifiedAt": "2026-11-01T10:00:00Z" },
+        "CHG-0002": { "status": "not_started", "progress": 0, "urgency": "before_release" },
+        "CHG-0003": { "status": "not_started", "progress": 0, "urgency": "immediate" },
+        "CHG-0004": { "status": "not_started", "progress": 0, "urgency": "immediate" },
+        "CHG-0005": { "status": "not_applicable", "progress": null, "note": "The driver app owns the trail write." },
+        "CHG-0006": { "status": "not_applicable", "progress": null, "note": "The driver app owns the PIN flow deletion." },
+        "CHG-0007": { "status": "not_applicable", "progress": null, "note": "The user app owns the arrival display." }
+      }
+    }
+  },
+  "x-rules": {
+    "sourceOfTruth": "Each app's own .contract/adopted.json in its own repo. This file is a report of those.",
+    "noChecklistNoProgress": "An app with no checklist shows 0 percent, not 100 percent.",
+    "evidenceRequired": "A status of adopted needs a merged PR as evidence. The CI tool checks it.",
+    "notApplicable": "A status of not_applicable needs a note saying why."
+  }
+}

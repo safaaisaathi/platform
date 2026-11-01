@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://safaaisaathi.contracts/collections/trailChunk.schema.json",
+  "title": "Trail Chunk",
+  "description": "A shard of a trip's GPS trail. Solves the 1 MiB document cliff.",
+  "type": "object",
+  "x-path": "trips/{tripId}/trail/{chunkIndex}",
+  "x-docId": "0, 1, 2, ...",
+  "x-writes": ["driverapp: direct client write"],
+  "x-reads": ["driverapp", "adminpanel"],
+  "x-direct-write-exception": "This is the ONE deliberate exception to the rule that a server-mediated write is safer. Chunking exists to reduce the number of writes. A Function per write adds a network hop, and the parent trip doc plus the size limit protect it fully. The rule enforces the parent vanId, the size cap, and denies update and delete.",
+  "properties": {
+    "points": {
+      "type": "array",
+      "maxItems": 1000,
+      "description": "The points in this chunk. Capped at 1000 so the document stays under the 1 MiB limit.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+          "lng": { "type": "number", "minimum": -180, "maximum": 180 },
+          "t": { "type": "string", "format": "date-time" }
+        },
+        "required": ["lat", "lng", "t"]
+      }
+    },
+    "from": {
+      "type": "integer",
+      "description": "The index of the first point in the trip's full trail."
+    },
+    "to": {
+      "type": "integer",
+      "description": "The index of the last point in the trip's full trail, exclusive."
+    }
+  },
+  "required": ["points", "from", "to"]
+}

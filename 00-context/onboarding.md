@@ -9,11 +9,14 @@ audience: human
 see_also:
   - ./product-overview.md
   - ../07-guides/firebase-access-and-keys.md
+  - ../07-guides/firebase-getting-started.md
 ---
 
 # Onboarding
 
 **For a human teammate on day one.** If you are an AI harness, skip this file. Read `../AGENTS.md` instead.
+
+**Never used Firebase before?** Read [`../07-guides/firebase-getting-started.md`](../07-guides/firebase-getting-started.md) first. It lists what to install for your stack, the order of the steps, and how secrets reach the project.
 
 ## The three rules before anything else
 
@@ -28,7 +31,7 @@ see_also:
 | # | Step | How |
 |---|---|---|
 | 1 | Get **Viewer** on the Firebase project | Firebase console → Project settings → Users and permissions |
-| 2 | Install the CLI and log in | `npm i -g firebase-tools`, then `firebase login` |
+| 2 | Install the CLI and log in | `npx -y firebase-tools@latest login`. Never install it globally. The npx form never drifts |
 | 3 | Point the CLI at the project | `firebase use safaaisaathi-63a87`. It writes `.firebaserc` |
 | 4 | Clone this repo | `git clone <the platform repo>` |
 | 5 | Vendor the contract into your app repo | `node 08-tools/sync-contract.ts ../your-app-repo` |
@@ -60,7 +63,7 @@ see_also:
 ## The emulator
 
 ```bash
-firebase emulators:start
+npx -y firebase-tools@latest emulators:start
 ```
 
 **The emulator config is in `03-rules/firebase.json`.** It runs the auth and the Firestore emulators.
@@ -105,9 +108,10 @@ firebase emulators:start
 | # | Read | Time |
 |---|---|---|
 | 1 | `product-overview.md` | 2 minutes |
-| 2 | `../07-guides/reading-the-contract.md` | 5 minutes |
-| 3 | The schemas for the five collections you touch | 20 minutes |
-| 4 | `../07-guides/backend-split.md` | 10 minutes |
-| 5 | `../05-decisions/index.md` | 15 minutes |
+| 2 | `../07-guides/firebase-getting-started.md` | 15 minutes. Skip it if you already know Firebase |
+| 3 | `../07-guides/reading-the-contract.md` | 5 minutes |
+| 4 | The schemas for the five collections you touch | 20 minutes |
+| 5 | `../07-guides/backend-split.md` | 10 minutes |
+| 6 | `../05-decisions/index.md` | 15 minutes |
 
 **Do not read `09-reference/` on day one.** It is 2883 lines of background. Read it when you need the history.

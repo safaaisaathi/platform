@@ -32,6 +32,7 @@ see_also:
 - `EXT-0001`. The driver app owns `trips.id`, registered as an extension with a sha256 hash. The core contract version did not move.
 - `06-changes/EXT-0001-driverapp-trip-id.md`. The explanation, and the known debt on a redundant field.
 - `check-adoption.ts --write`. It regenerates section 1 of the impact matrix from the manifest and the adoption records, between two markers. The matrix is now genuinely generated instead of claiming to be.
+- `07-guides/firebase-getting-started.md`. Firebase from zero, for a teammate who has never used it. The tool install matrix per stack, the eight steps in order, the emulator, the first Firebase code per stack, the secret protocol, and the eight failures a newcomer will hit.
 
 ### Changed
 

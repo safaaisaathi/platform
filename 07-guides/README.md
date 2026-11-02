@@ -47,7 +47,7 @@ On a conflict between a guide and `../02-contracts/`, the contract wins and the 
 | Your task | Read exactly these | Do not read |
 |---|---|---|
 | Route yourself | This file, section 4 only | Any other guide, before you know your task |
-| Follow a guide | That guide, all 7 sections | The other 10 guides |
+| Follow a guide | That guide, all 7 sections | The other 11 guides |
 | Check the law behind a guide | `../AGENTS.md`, `../02-contracts/README.md` | `../09-reference/` |
 
 ## 4. Procedure
@@ -60,6 +60,7 @@ On a conflict between a guide and `../02-contracts/`, the contract wins and the 
 | Implement a published change inside an app repo | `./adopting-a-change.md` | Update `.contract/adopted.json` as you go. Report with the app block |
 | A security hole is open, or data is being lost | `./emergency-changes.md` | Deploy first, record in the same window. Everything else stops |
 | Give a teammate Firebase access, or react to a leaked key | `./firebase-access-and-keys.md` | Share web config freely. Never share a service account key |
+| Set a teammate up on Firebase from zero, or wire Firebase into an app | `./firebase-getting-started.md` | Install per stack, then run the eight steps in order. The harness asks for secrets, the human types them |
 | Decide where a write belongs: rule, Function or device | `./backend-split.md` | Apply the three placement rules. Record the verdict in the change entry |
 | Build or debug the arrival alert | `./arrival-notification-flow.md` | Walk the nine steps. Check every guard before you trust a result |
 | Build a screen, a widget or a push handler | `./common-ui-patterns.md` | Use the shared token names. Keep copy inside the app |
@@ -103,10 +104,10 @@ Expected output: `07-guides/README.md: TABLES=4 MALFORMED=0`. Any `BAD` line is 
 Also verify every guide named in the table exists:
 
 ```bash
-for f in reading-the-contract making-a-contract-change adding-a-new-feature adopting-a-change emergency-changes firebase-access-and-keys backend-split arrival-notification-flow common-ui-patterns using-this-repo; do test -f "07-guides/$f.md" && echo "OK $f" || echo "MISSING $f"; done
+for f in reading-the-contract making-a-contract-change adding-a-new-feature adopting-a-change emergency-changes firebase-access-and-keys firebase-getting-started backend-split arrival-notification-flow common-ui-patterns using-this-repo; do test -f "07-guides/$f.md" && echo "OK $f" || echo "MISSING $f"; done
 ```
 
-Expected: ten `OK` lines, zero `MISSING` lines.
+Expected: eleven `OK` lines, zero `MISSING` lines.
 
 ## 7. Report format
 

@@ -4,7 +4,7 @@
   "title": "Safai Saathi change manifest",
   "description": "The machine-readable list of every change to the contract. Each entry pairs with a CHG-nnn-*.md file in this folder. The two change together, never one alone.",
   "contractVersion": "1.0.0",
-  "generatedAt": "2026-11-01",
+  "generatedAt": "2026-11-02",
   "changes": [
     {
       "id": "CHG-0001",
@@ -213,6 +213,34 @@
       },
       "explainedIn": "CHG-0007-arrival-alert-radius-100m.md",
       "supersedes": null
+    },
+    {
+      "id": "EXT-0001",
+      "title": "The driver app owns trips.id",
+      "severity": "S3",
+      "priority": "P4",
+      "breaking": false,
+      "date": "2026-11-02",
+      "author": "driverapp-team",
+      "kind": "extension",
+      "app": "driverapp",
+      "extensionVersion": "1",
+      "affectedApps": ["driverapp"],
+      "affectedCollections": ["trips"],
+      "affectedFields": [
+        { "path": "trips.id", "change": "added", "ownedBy": "driverapp" }
+      ],
+      "migration": {
+        "required": false,
+        "steps": [],
+        "deadline": null
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": null,
+        "oldFieldWritableUntil": null
+      },
+      "explainedIn": "EXT-0001-driverapp-trip-id.md",
+      "supersedes": null
     }
   ],
   "x-rules": {
@@ -220,6 +248,7 @@
     "severity": "S0 emergency, S1 breaking, S2 new capability, S3 additive, S4 internal. See 02-contracts/severity-policy.md.",
     "priority": "P0 to P4. Severity plus impact.",
     "migrationRequired": "An S1 or S2 entry without migration.steps cannot merge.",
-    "collectionNaming": "affectedCollections names the Firestore collection, plural, so a developer can grep for it. A subcollection is named by its schema file's base name, singular, because its Firestore path is not a top-level collection. Both forms resolve, because 08-tools/check-consistency.ts maps the plural to the singular schema."
+    "collectionNaming": "affectedCollections names the Firestore collection, plural, so a developer can grep for it. A subcollection is named by its schema file's base name, singular, because its Firestore path is not a top-level collection. Both forms resolve, because 08-tools/check-consistency.ts maps the plural to the singular schema.",
+    "extensionEntries": "An EXT-nnn entry is one app's extension. It lives in the app's own repo and is registered in 02-contracts/extensions/registry.json. It does NOT move the core contract version, and the other apps are not notified. It carries kind, app and extensionVersion instead of contractVersion."
   }
 }

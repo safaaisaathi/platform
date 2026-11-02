@@ -15,13 +15,22 @@
 //
 // Exits 1 when a gated app is behind on an S0 or S1 entry.
 //
-// Usage: node check-adoption.ts <app-repo>   (or set APP_REPO, default ".")
+// Usage:
+//   node check-adoption.ts <app-repo>   (or set APP_REPO, default ".")
+//   node check-adoption.ts --write      regenerate the impact matrix
+//
+// The --write mode regenerates section 1 of 06-changes/impact-matrix.md from
+// the manifest and the adoption records, so the matrix is never hand-edited
+// and never drifts from the machine log.
 
-import { stat } from 'node:fs/promises';
+import { readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import {
+  APPS,
+  CHANGES_DIR,
   MANIFEST_PATH,
+  MONOREPO_ROOT,
   REGISTRY_PATH,
   asArray,
   currentContractVersion,
@@ -30,10 +39,15 @@ import {
   printErrors,
   resolveTargetRepo,
   tryReadJson,
+  type Json,
   type JsonObject,
 } from './lib.ts';
 
 const HEADER = 'check-adoption failed';
+
+const MATRIX_PATH = path.join(CHANGES_DIR, 'impact-matrix.md');
+const MATRIX_BEGIN = '<!-- BEGIN GENERATED: section-1 -->';
+const MATRIX_END = '<!-- END GENERATED: section-1 -->';
 
 function errorText(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause);
@@ -46,14 +60,27 @@ type AppRecord = {
   extensionVersion: string | undefined;
   // change id -> status as written ("adopted", "not_started", "not_applicable")
   checklist: Map<string, string>;
+  // change id -> the fraction of the checklist that is done, 0 to 1
+  progress: Map<string, number>;
+  // change id -> the urgency the app recorded ("immediate", "before_release")
+  urgency: Map<string, string>;
 };
 
 function toRecord(app: string, doc: JsonObject, hasFile: boolean): AppRecord {
   const checklist = new Map<string, string>();
-  const core = doc['coreChanges'];
-  if (isJsonObject(core)) {
-    for (const [id, raw] of Object.entries(core)) {
-      if (isJsonObject(raw) && typeof raw['status'] === 'string') checklist.set(id, raw['status']);
+  const progress = new Map<string, number>();
+  const urgency = new Map<string, string>();
+  // Core changes and extension changes are both tracked. An EXT entry is the
+  // app's own, but the report treats it the same way, because the manifest
+  // lists it with the same affectedApps and severity axes.
+  for (const groupName of ['coreChanges', 'extensionChanges']) {
+    const group = doc[groupName];
+    if (!isJsonObject(group)) continue;
+    for (const [id, raw] of Object.entries(group)) {
+      if (!isJsonObject(raw)) continue;
+      if (typeof raw['status'] === 'string') checklist.set(id, raw['status']);
+      if (typeof raw['progress'] === 'number') progress.set(id, raw['progress']);
+      if (typeof raw['urgency'] === 'string') urgency.set(id, raw['urgency']);
     }
   }
   return {
@@ -62,11 +89,21 @@ function toRecord(app: string, doc: JsonObject, hasFile: boolean): AppRecord {
     contractVersion: typeof doc['contractVersion'] === 'string' ? doc['contractVersion'] : undefined,
     extensionVersion: typeof doc['extensionVersion'] === 'string' ? doc['extensionVersion'] : undefined,
     checklist,
+    progress,
+    urgency,
   };
 }
 
 function emptyRecord(app: string): AppRecord {
-  return { app, hasFile: false, contractVersion: undefined, extensionVersion: undefined, checklist: new Map() };
+  return {
+    app,
+    hasFile: false,
+    contractVersion: undefined,
+    extensionVersion: undefined,
+    checklist: new Map(),
+    progress: new Map(),
+    urgency: new Map(),
+  };
 }
 
 function affectedAppsOf(change: JsonObject): string[] {
@@ -74,9 +111,150 @@ function affectedAppsOf(change: JsonObject): string[] {
   return apps.filter((app): app is string => typeof app === 'string');
 }
 
+// --- The impact matrix generator -------------------------------------------
+
+// The per-app progress cell. A cell is only ever what the app's own record
+// says. A missing record is 0%, never 100%.
+function matrixCell(change: JsonObject, record: AppRecord | undefined): string {
+  const id = typeof change['id'] === 'string' ? change['id'] : undefined;
+  if (id === undefined) return 'n/a';
+
+  // An app that is not in affectedApps is not affected. It is n/a, whatever
+  // its own record says. The record may list it as not_applicable, or it may
+  // not list it at all. Both mean the same thing here.
+  const affected = affectedAppsOf(change);
+  if (record === undefined || !affected.includes(record.app)) return 'n/a';
+
+  const status = record.checklist.get(id);
+  if (status === undefined) return '⬜ 0%';
+  if (status === 'not_applicable') return 'n/a';
+  if (status === 'adopted') return '✅ 100%';
+  if (status === 'in_progress') {
+    const progress = record.progress.get(id);
+    const percent = typeof progress === 'number' ? Math.round(progress * 100) : 0;
+    return `🟡 ${percent}%`;
+  }
+  return '⬜ 0%';
+}
+
+// The deadline cell. An immediate urgency wins over a date. A date wins over
+// the other urgencies. With neither, the change is not on a clock.
+function matrixDeadline(change: JsonObject, records: ReadonlyMap<string, AppRecord>): string {
+  const id = typeof change['id'] === 'string' ? change['id'] : undefined;
+
+  let urgency: string | undefined;
+  for (const app of affectedAppsOf(change)) {
+    const value = records.get(app)?.urgency.get(id ?? '');
+    if (value === 'immediate') {
+      urgency = 'immediate';
+      break;
+    }
+    if (value !== undefined && urgency === undefined) urgency = value;
+  }
+  if (urgency === 'immediate') return '**Immediate**';
+
+  const migration = isJsonObject(change['migration']) ? change['migration'] : undefined;
+  const deadline = migration?.['deadline'];
+  if (typeof deadline === 'string' && deadline.length > 0) return deadline;
+
+  if (urgency === 'before_release') return 'Before release';
+  if (urgency === 'scheduled') return 'Scheduled';
+  if (urgency === 'optional') return 'Optional';
+  return 'none';
+}
+
+// Builds section 1 of the impact matrix.
+function buildMatrixSection(changes: JsonObject[], records: ReadonlyMap<string, AppRecord>): string {
+  const lines: string[] = [];
+  lines.push('| Change | Sev | Pri | Driver | User | Admin | Deadline |');
+  lines.push('|---|---|---|---|---|---|---|');
+
+  for (const change of changes) {
+    const id = typeof change['id'] === 'string' ? change['id'] : '(missing id)';
+    const title = typeof change['title'] === 'string' ? change['title'] : id;
+    const explainedIn = typeof change['explainedIn'] === 'string' ? change['explainedIn'] : undefined;
+    const severity = typeof change['severity'] === 'string' ? change['severity'] : '?';
+    const priority = typeof change['priority'] === 'string' ? change['priority'] : '?';
+    const priorityCell = severity === 'S0' || severity === 'S1' ? `**${priority}**` : priority;
+    const label = explainedIn === undefined ? id : `[${id}](${explainedIn}) ${title}`;
+
+    const cells = APPS.map((app) => matrixCell(change, records.get(app)));
+    lines.push(`| ${label} | ${severity} | ${priorityCell} | ${cells[0]} | ${cells[1]} | ${cells[2]} | ${matrixDeadline(change, records)} |`);
+  }
+
+  lines.push('');
+  lines.push('**Legend**: ✅ done. 🟡 in progress. ⬜ not started. n/a not affected.');
+  return lines.join('\n');
+}
+
+// Collects the adoption records for the matrix. An app's OWN file wins when
+// the app repo is checked out next to this one. Otherwise the platform's
+// report in 06-changes/adoption.json is used, and that report is a copy of
+// the app's file anyway.
+async function collectMatrixRecords(): Promise<Map<string, AppRecord>> {
+  const records = new Map<string, AppRecord>();
+
+  const platformRaw = await tryReadJson(path.join(CHANGES_DIR, 'adoption.json'));
+  const platformApps =
+    platformRaw !== undefined && isJsonObject(platformRaw) && isJsonObject(platformRaw['apps'])
+      ? platformRaw['apps']
+      : {};
+
+  for (const app of APPS) {
+    const ownPath = path.join(MONOREPO_ROOT, app, '.contract', 'adopted.json');
+    const ownRaw = await tryReadJson(ownPath);
+    if (ownRaw !== undefined && isJsonObject(ownRaw)) {
+      records.set(app, toRecord(app, ownRaw, true));
+      continue;
+    }
+    const reported = platformApps[app];
+    if (isJsonObject(reported)) {
+      records.set(app, toRecord(app, reported, false));
+      continue;
+    }
+    records.set(app, emptyRecord(app));
+  }
+  return records;
+}
+
+// Rewrites the generated block of the impact matrix in place.
+async function writeImpactMatrix(changes: JsonObject[]): Promise<void> {
+  const records = await collectMatrixRecords();
+  const section = buildMatrixSection(changes, records);
+
+  const text = await readFile(MATRIX_PATH, 'utf8');
+  const begin = text.indexOf(MATRIX_BEGIN);
+  const end = text.indexOf(MATRIX_END);
+  if (begin < 0 || end < 0 || end < begin) {
+    printErrors(HEADER, [
+      `${MATRIX_PATH} has no generated block. It must contain ${MATRIX_BEGIN} and ${MATRIX_END}.`,
+    ]);
+  }
+  const head = text.slice(0, begin + MATRIX_BEGIN.length);
+  const tail = text.slice(end);
+  await writeFile(MATRIX_PATH, `${head}\n${section}\n${tail}`, 'utf8');
+  console.log(`wrote the generated section of ${path.relative(process.cwd(), MATRIX_PATH)}`);
+}
+
 async function main(): Promise<void> {
   const errors: string[] = [];
   const notes: string[] = [];
+
+  // The --write mode regenerates the impact matrix. It needs no app repo.
+  if (process.argv.includes('--write')) {
+    const manifestRaw = await tryReadJson(MANIFEST_PATH);
+    if (manifestRaw === undefined || !isJsonObject(manifestRaw)) {
+      printErrors(HEADER, ['06-changes/manifest.json must be a JSON object']);
+    }
+    const changes: JsonObject[] = [];
+    for (const raw of asArray(manifestRaw['changes'] ?? [], 'manifest.json "changes"')) {
+      if (isJsonObject(raw)) changes.push(raw);
+    }
+    await writeImpactMatrix(changes);
+    ok('impact matrix regenerated');
+    return;
+  }
+
   const target = resolveTargetRepo(process.argv);
   const targetStat = await stat(target).catch(() => undefined);
   if (targetStat === undefined || !targetStat.isDirectory()) {

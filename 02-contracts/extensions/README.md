@@ -76,17 +76,33 @@ platform/02-contracts/extensions/registry.json     ← the platform owns the REG
 
 ```json
 {
-  "driverapp": {
-    "extensionVersion": "4",
-    "source": "driverapp/.contract/extensions/driverapp.json",
-    "hash": "sha256:7c1e...",
-    "extends": ["trip"],
-    "registeredAt": "2026-11-01"
+  "apps": {
+    "driverapp": {
+      "app": "driverapp",
+      "extensionVersion": "1",
+      "source": "driverapp/.contract/extensions/driverapp.json",
+      "hash": "sha256:a56cdec5...",
+      "extends": ["trip"],
+      "registeredAt": "2026-11-02"
+    }
   }
 }
 ```
 
+| Field | Meaning |
+|---|---|
+| `apps` | The wrapper. Every app's registration is one key under it |
+| The key | The owning app. It must match the `source` path |
+| `app` | The owning app, again. Optional, but it is checked when present |
+| `extensionVersion` | The app's extension version at the time of registration |
+| `source` | The path to the app's file, relative to the folder that holds the platform repo and the app repos side by side |
+| `hash` | `sha256:` plus the hex digest of the app's file, byte for byte |
+| `extends` | The collection keys the app extends. It must match the file's own `extends` keys |
+| `registeredAt` | The date the registration was made |
+
 **The hash is the enforcement.** `08-tools/check-consistency.ts` recomputes the hash of the app's extension file and compares it. If they differ, the app changed its extension without re-registering, and CI fails.
+
+**The `extends` list is checked too.** A registry that lists a collection the file does not extend is a summary that has drifted from the thing it summarizes, and a reader trusts the summary.
 
 ## 5. Two versions, not one
 
@@ -96,6 +112,8 @@ platform/02-contracts/extensions/registry.json     ← the platform owns the REG
 | `registry.json` → `<app>.extensionVersion` | That app | **Its own** extension changed | **Only that app** |
 
 **Why this matters.** If every app's extension change bumped the core version, all three apps would get a version bump PR for a change that affects none of them. The team would learn to ignore the bump PR, and then ignore the real one.
+
+**The CI gate knows the difference.** A pull request that touches only `registry.json` and the generated composed schemas does NOT need a `VERSION` bump. See `../severity-policy.md` section 5.1.
 
 **The change log has two kinds of entry.**
 

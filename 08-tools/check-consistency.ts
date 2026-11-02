@@ -34,7 +34,9 @@ import {
   REPO_ROOT,
   asArray,
   asObject,
+  collectExtensionFields,
   fieldExists,
+  fieldExistsWithExtensions,
   isJsonObject,
   listMarkdownFiles,
   ok,
@@ -73,6 +75,9 @@ async function main(): Promise<void> {
   const errors: string[] = [];
   const schemas = await readCollectionSchemas();
   const known = new Set(schemas.keys());
+  // A field owned by a registered extension is a real field of the document.
+  // The manifest is allowed to name it.
+  const extensionFields = await collectExtensionFields();
   const changes = asArray(manifestRaw['changes'] ?? [], 'manifest.json "changes"');
   const seenIds = new Set<string>();
 
@@ -158,8 +163,9 @@ async function main(): Promise<void> {
       }
 
       // The old name of a renamed or removed field may already be gone from
-      // the schema. Every other kind must name a field that exists.
-      if (kind !== 'removed' && kind !== 'renamed' && !fieldExists(schemas.get(base), fieldName)) {
+      // the schema. Every other kind must name a field that exists, in the
+      // core schema or in a registered extension.
+      if (kind !== 'removed' && kind !== 'renamed' && !fieldExistsWithExtensions(schemas, extensionFields, base, fieldName)) {
         errors.push(`${id}: affectedFields path "${fieldPath}" names no field in ${base}.schema.json`);
       }
     }
@@ -224,6 +230,23 @@ async function main(): Promise<void> {
       if (isJsonObject(extDoc) && extDoc['app'] !== undefined && extDoc['app'] !== app) {
         errors.push(`registry.json: the extension file for "${app}" declares app ${JSON.stringify(extDoc['app'])}`);
       }
+
+      // The registry's "extends" list must match the file's own "extends"
+      // keys. Otherwise the registry is a summary that can drift from the
+      // thing it summarizes, and a reader trusts the summary.
+      const registeredExtends = asArray(entryRaw['extends'] ?? [], `registry.json "${app}" extends`);
+      if (isJsonObject(extDoc)) {
+        const fileExtends = extDoc['extends'];
+        const fileKeys = isJsonObject(fileExtends) ? Object.keys(fileExtends).sort() : [];
+        const listed = registeredExtends
+          .filter((item): item is string => typeof item === 'string')
+          .slice()
+          .sort();
+        if (listed.join(',') !== fileKeys.join(',')) {
+          errors.push(`registry.json: "${app}" extends [${listed.join(', ')}] does not match the extension file's collections [${fileKeys.join(', ')}]`);
+        }
+      }
+
       const hash = entryRaw['hash'];
       if (typeof hash === 'string' && hash.startsWith('sha256:')) {
         const actual = `sha256:${createHash('sha256').update(fileText).digest('hex')}`;

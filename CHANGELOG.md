@@ -27,7 +27,19 @@ see_also:
 
 ## [Unreleased]
 
-Nothing pending.
+### Added
+
+- `EXT-0001`. The driver app owns `trips.id`, registered as an extension with a sha256 hash. The core contract version did not move.
+- `06-changes/EXT-0001-driverapp-trip-id.md`. The explanation, and the known debt on a redundant field.
+- `check-adoption.ts --write`. It regenerates section 1 of the impact matrix from the manifest and the adoption records, between two markers. The matrix is now genuinely generated instead of claiming to be.
+
+### Changed
+
+- `check-consistency.ts` resolves an `EXT` entry's `affectedFields` against the registered extension, not only against the core schema. A field owned by an extension is a real field of the document.
+- `check-consistency.ts` also checks that the registry's `extends` list matches the extension file's own `extends` keys.
+- `check-adoption.ts` reads `extensionChanges` as well as `coreChanges`, so an `EXT-nnn` entry is tracked like any other change.
+- The version-bump CI gate no longer treats `02-contracts/extensions/registry.json` or the generated `02-contracts/collections/.composed/` files as core contract changes. See `02-contracts/severity-policy.md` section 5.1.
+- The driver app's adoption record is now a real file in its own repo, and the platform's report in `06-changes/adoption.json` was copied from it.
 
 ## [1.0.0] - 2026-11-01
 

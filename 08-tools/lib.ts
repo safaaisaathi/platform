@@ -183,6 +183,63 @@ export function fieldExists(schema: JsonObject | undefined, fieldPath: string): 
   return node !== undefined;
 }
 
+// Reads the registered extension files and returns the extra property names
+// each collection gets from them.
+//
+// A field owned by an extension IS a real field of the document. The manifest
+// may name it in affectedFields, and the strict composed schema accepts it.
+// So a field-existence check has to look at the core schema AND at the
+// registered extensions, or it reports a legitimate extension field as
+// missing.
+export async function collectExtensionFields(): Promise<Map<string, Set<string>>> {
+  const out = new Map<string, Set<string>>();
+  const registryRaw = await tryReadJson(REGISTRY_PATH);
+  if (registryRaw === undefined || !isJsonObject(registryRaw)) return out;
+
+  const apps = registryRaw['apps'];
+  if (!isJsonObject(apps)) return out;
+
+  for (const entryRaw of Object.values(apps)) {
+    if (!isJsonObject(entryRaw)) continue;
+    const source = entryRaw['source'];
+    if (typeof source !== 'string' || source.length === 0) continue;
+
+    const extRaw = await tryReadJson(path.resolve(MONOREPO_ROOT, source));
+    if (extRaw === undefined || !isJsonObject(extRaw)) continue;
+
+    const extendsMap = extRaw['extends'];
+    if (!isJsonObject(extendsMap)) continue;
+
+    for (const [collectionKey, specRaw] of Object.entries(extendsMap)) {
+      if (!isJsonObject(specRaw)) continue;
+      const propsRaw = specRaw['properties'];
+      if (!isJsonObject(propsRaw)) continue;
+      const names = out.get(collectionKey) ?? new Set<string>();
+      for (const name of Object.keys(propsRaw)) names.add(name);
+      out.set(collectionKey, names);
+    }
+  }
+  return out;
+}
+
+// True when the field exists in the core schema, or is owned by a registered
+// extension of that collection.
+export function fieldExistsWithExtensions(
+  schemas: ReadonlyMap<string, JsonObject>,
+  extensionFields: ReadonlyMap<string, ReadonlySet<string>>,
+  collection: string,
+  fieldPath: string,
+): boolean {
+  if (fieldExists(schemas.get(collection), fieldPath)) return true;
+  const names = extensionFields.get(collection);
+  if (names === undefined) return false;
+  const top = fieldPath.split('.')[0];
+  // A dotted path inside an extension-owned field is only valid when the
+  // extension declares the nested shape, which the extension model does not
+  // allow for now. Only the top-level name is accepted.
+  return names.has(top);
+}
+
 // Lists every file under "dir", relative and sorted. Empty for an empty dir.
 export async function listFilesRecursive(dir: string): Promise<string[]> {
   const out: string[] = [];

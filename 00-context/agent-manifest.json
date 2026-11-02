@@ -43,6 +43,11 @@
       "expect": "a per-app table",
       "meaning": "Which app is behind on which change."
     },
+    "matrix": {
+      "command": "node 08-tools/check-adoption.ts --write",
+      "expect": "impact matrix regenerated",
+      "meaning": "Regenerate section 1 of 06-changes/impact-matrix.md from the manifest and the adoption records. The block between the BEGIN GENERATED and END GENERATED markers is replaced. The rest of the file is hand written."
+    },
     "build": {
       "command": "node 08-tools/build-schemas.ts",
       "expect": "the composed schemas written",

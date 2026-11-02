@@ -16,23 +16,28 @@ see_also:
 
 **One page. Who is affected by what, and have they done it.**
 
-**This file is generated from `manifest.json` and `adoption.json`.** Do not edit it by hand. If you did, it would drift from the machine log, and the machine log is the one CI reads.
+**Section 1 is generated.** `node 08-tools/check-adoption.ts --write` rewrites the block between the markers, from `manifest.json` and the adoption records. **Do not edit it by hand.** If you did, it would drift from the machine log, and the machine log is the one CI reads.
+
+**Sections 2 to 6 are written by hand.** They are the reasoning, and a machine cannot write them.
 
 ## 1. The current state
 
 **Contract version**: `1.0.0`. The next release is `2.0.0`, which is the breaking one.
 
+<!-- BEGIN GENERATED: section-1 -->
 | Change | Sev | Pri | Driver | User | Admin | Deadline |
 |---|---|---|---|---|---|---|
-| [CHG-0001](CHG-0001-freeze-the-collection-and-field-contract.md) Freeze the contract | S2 | P2 | ✅ 100% | ✅ 100% | ✅ 100% | none |
-| [CHG-0002](CHG-0002-mask-the-raw-driver-phone.md) Mask the raw phone | S1 | P1 | ⬜ 0% | n/a | ⬜ 0% | 2026-11-15 |
-| [CHG-0003](CHG-0003-scope-the-rules-by-custom-claims.md) Rules scope by claims | S1 | **P0** | ⬜ 0% | ⬜ 0% | ⬜ 0% | **Immediate** |
-| [CHG-0004](CHG-0004-admin-writes-go-through-callables.md) Admin writes via callables | S1 | P1 | n/a | n/a | ⬜ 0% | Immediate |
-| [CHG-0005](CHG-0005-shard-the-gps-trail.md) Shard the GPS trail | S1 | P1 | ⬜ 0% | n/a | n/a | 2026-11-15 |
-| [CHG-0006](CHG-0006-delete-the-pin-flow.md) Delete the PIN flow | S1 | P1 | ⬜ 0% | n/a | n/a | 2026-11-15 |
-| [CHG-0007](CHG-0007-arrival-alert-radius-100m.md) Arrival radius 100 m | S2 | P2 | n/a | ⬜ 0% | n/a | Scheduled |
+| [CHG-0001](CHG-0001-freeze-the-collection-and-field-contract.md) Freeze the collection and field contract | S2 | P2 | ✅ 100% | ✅ 100% | ✅ 100% | none |
+| [CHG-0002](CHG-0002-mask-the-raw-driver-phone.md) Move the raw driver phone to staffPhones and mask it at the source | S1 | **P1** | ⬜ 0% | n/a | ⬜ 0% | 2026-11-15 |
+| [CHG-0003](CHG-0003-scope-the-rules-by-custom-claims.md) Scope the Firestore rules by custom claims instead of by signed-in | S1 | **P0** | ⬜ 0% | ⬜ 0% | ⬜ 0% | **Immediate** |
+| [CHG-0004](CHG-0004-admin-writes-go-through-callables.md) Route every admin panel write through a callable | S1 | **P1** | n/a | n/a | ⬜ 0% | **Immediate** |
+| [CHG-0005](CHG-0005-shard-the-gps-trail.md) Shard the GPS trail into a trail subcollection | S1 | **P1** | ⬜ 0% | n/a | n/a | 2026-11-15 |
+| [CHG-0006](CHG-0006-delete-the-pin-flow.md) Delete verifyDriverPin, setDriverPin and the vanSecrets collection | S1 | **P1** | ⬜ 0% | n/a | n/a | 2026-11-15 |
+| [CHG-0007](CHG-0007-arrival-alert-radius-100m.md) Set the arrival alert radius to 100 m from the ward boundary | S2 | P2 | n/a | ⬜ 0% | n/a | Scheduled |
+| [EXT-0001](EXT-0001-driverapp-trip-id.md) The driver app owns trips.id | S3 | P4 | ✅ 100% | n/a | n/a | none |
 
-**Legend**: ✅ done. ⬜ not started. n/a not affected.
+**Legend**: ✅ done. 🟡 in progress. ⬜ not started. n/a not affected.
+<!-- END GENERATED: section-1 -->
 
 ## 2. The one that blocks everything
 

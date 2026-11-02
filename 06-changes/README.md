@@ -45,6 +45,27 @@ see_also:
 
 **Why two kinds.** If every app's extension change bumped the core version, all three apps would get a version-bump PR for a change that affects none of them. The team would learn to ignore the bump PR, and then ignore the real one.
 
+**Where an `EXT-nnn` entry physically lives.**
+
+| Piece | Where it is | Who owns it |
+|---|---|---|
+| The extension file | `<app>/.contract/extensions/<app>.json` | **The app** |
+| The registration | `02-contracts/extensions/registry.json` | The platform owner |
+| The manifest entry | `06-changes/manifest.json`, an `EXT-nnn` id | The app owner, merged by the platform owner |
+| The explanation file | `06-changes/EXT-<nnn>-<slug>.md` | The app owner |
+| The adoption record | `<app>/.contract/adopted.json`, under `extensionChanges` | **The app** |
+
+**The `EXT-nnn` entry in the manifest carries four fields the `CHG-nnn` entry does not need.**
+
+| Field | What it is |
+|---|---|
+| `kind` | `"extension"` |
+| `app` | The owning app |
+| `extensionVersion` | The app's extension version at the time of the change |
+| `contractVersion` | **Omitted.** An extension change does not move the core version |
+
+**The CI gate knows the difference.** `check-consistency.ts` resolves an `EXT` entry's `affectedFields` against the registered extension, not only against the core schema. A field owned by an extension is a real field of the document, and the manifest is allowed to name it.
+
 ## 3. The change entry
 
 Every entry in `manifest.json` has this shape.
@@ -172,9 +193,17 @@ Every entry in `manifest.json` has this shape.
 
 ## 6. The impact matrix
 
-**`impact-matrix.md` is the one-page human view.** It is regenerated from `manifest.json`. It is what you paste into a standup.
+**`impact-matrix.md` is the one-page human view.** It is what you paste into a standup.
 
-**Do not edit it by hand.** If you did, it would drift from the machine log, and the machine log is the one that counts.
+**Section 1 is generated. Do not edit it by hand.** If you did, it would drift from the machine log, and the machine log is the one that counts.
+
+```bash
+node 08-tools/check-adoption.ts --write
+```
+
+**The command rewrites the block between the `BEGIN GENERATED: section-1` and `END GENERATED: section-1` markers.** It reads the manifest for the changes and the adoption records for the progress. An app's own `.contract/adopted.json` wins when the app repo is checked out next to this one. Otherwise the platform's report in `adoption.json` is used.
+
+**Sections 2 to 6 are written by hand.** They are the reasoning, and a machine cannot write them.
 
 ## 7. The procedure for a change
 

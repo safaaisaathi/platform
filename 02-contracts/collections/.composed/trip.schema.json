@@ -120,6 +120,11 @@
     "mockLocationDetected": {
       "type": "boolean",
       "description": "A one-way latch. Once true it stays true. The office should be pushed."
+    },
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A copy of the Firestore document id, written by the driver app when it creates a trip. The driver app's Trip model is a round-trip shape, so the id has to survive a write and a read."
     }
   }
 }

@@ -88,10 +88,12 @@ see_also:
 ## 5. How to regenerate this file
 
 ```bash
-node 08-tools/check-adoption.ts
+node 08-tools/check-adoption.ts --write
 ```
 
-It prints the per-app table and the progress percentages. Copy the output into this file, or add a `--write` flag later.
+It rewrites section 1 from the manifest and the adoption records. **Sections 2 to 6 are hand written and are never touched.**
+
+Without `--write` it prints the same table to the terminal and changes nothing.
 
 ## 6. What the office should read
 

@@ -42,7 +42,7 @@ This repo makes the contract machine-readable, so the disagreement is caught by 
 | 04 | [`04-functions/`](04-functions/) | The server half. The decisions that need a live document | You are implementing a decision |
 | 05 | [`05-decisions/`](05-decisions/) | The ADRs. Why it is this way, not another way | You want the reasoning |
 | 06 | [`06-changes/`](06-changes/) | The change log. Who is affected, and have they caught up | You are shipping or adopting a change |
-| 07 | [`07-guides/`](07-guides/) | **The harness guides.** How to do the twelve actions | You are an AI harness doing a task |
+| 07 | [`07-guides/`](07-guides/) | **The harness guides.** How to do the thirteen actions | You are an AI harness doing a task |
 | 08 | [`08-tools/`](08-tools/) | The scripts. Validate, check, build, sync, bump, export | You need to verify something |
 | 09 | [`09-reference/`](09-reference/) | The background. The audits, the blueprints, the issue register | You need the history |
 

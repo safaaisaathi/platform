@@ -132,6 +132,7 @@
     "emulatorPorts": { "auth": 9099, "firestore": 8080, "functions": 5001 },
     "emulatorCaveat": "The Firestore emulator enforces the rules but NOT composite indexes. A green emulator run is not proof of index coverage.",
     "onboardingGuide": "07-guides/firebase-getting-started.md",
+    "publishingGuide": "07-guides/publishing-a-contract-change.md",
     "secretRule": "The harness never handles a secret value, only a secret name. The human types the value in their own terminal. Verify with functions:secrets:get, never functions:secrets:access."
   },
   "x-rules": {

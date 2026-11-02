@@ -33,6 +33,8 @@ see_also:
 - `06-changes/EXT-0001-driverapp-trip-id.md`. The explanation, and the known debt on a redundant field.
 - `check-adoption.ts --write`. It regenerates section 1 of the impact matrix from the manifest and the adoption records, between two markers. The matrix is now genuinely generated instead of claiming to be.
 - `07-guides/firebase-getting-started.md`. Firebase from zero, for a teammate who has never used it. The tool install matrix per stack, the eight steps in order, the emulator, the first Firebase code per stack, the secret protocol, and the eight failures a newcomer will hit.
+- `07-guides/publishing-a-contract-change.md`. The handoff between the platform repo and the three app repos. Compose, sync one app, let it adopt, refresh the matrix. One step per repo, and the reverse direction for when an app finds a problem.
+- `.github/ISSUE_TEMPLATE/contract-request.md`. The contract request form as a GitHub issue template, so an app owner can file one without assembling the file by hand. A `contract-request` label now exists on the repo.
 
 ### Changed
 
@@ -41,6 +43,10 @@ see_also:
 - `check-adoption.ts` reads `extensionChanges` as well as `coreChanges`, so an `EXT-nnn` entry is tracked like any other change.
 - The version-bump CI gate no longer treats `02-contracts/extensions/registry.json` or the generated `02-contracts/collections/.composed/` files as core contract changes. See `02-contracts/severity-policy.md` section 5.1.
 - The driver app's adoption record is now a real file in its own repo, and the platform's report in `06-changes/adoption.json` was copied from it.
+- `making-a-contract-change.md` now runs `build-schemas.ts` as step 7 and verifies the composed schemas are committed. CI enforced this and the guide did not, so a harness that followed the guide exactly got a red pull request.
+- `adopting-a-change.md` now has eight steps. It syncs the app's pinned copy first, reads the schemas from `.contract/vendor/` instead of a sibling checkout, and bumps the version pin with `bump-contract.ts` after the adoption work rather than before it.
+- `using-this-repo.md` has thirteen actions. A13 is the publish pipeline.
+- `06-changes/impact-matrix.md` section 5 now shows the real command, `check-adoption.ts --write`, instead of saying a `--write` flag might be added later. It exists.
 
 ## [1.0.0] - 2026-11-01
 

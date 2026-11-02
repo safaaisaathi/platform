@@ -47,7 +47,7 @@ On a conflict between a guide and `../02-contracts/`, the contract wins and the 
 | Your task | Read exactly these | Do not read |
 |---|---|---|
 | Route yourself | This file, section 4 only | Any other guide, before you know your task |
-| Follow a guide | That guide, all 7 sections | The other 11 guides |
+| Follow a guide | That guide, all 7 sections | The other 12 guides |
 | Check the law behind a guide | `../AGENTS.md`, `../02-contracts/README.md` | `../09-reference/` |
 
 ## 4. Procedure
@@ -56,6 +56,7 @@ On a conflict between a guide and `../02-contracts/`, the contract wins and the 
 |---|---|---|
 | Answer a question about the data, the permissions or the vocabulary | `./reading-the-contract.md` | Answer with file paths and exact values. Edit nothing |
 | Add, change or remove a field, an enum value, a collection, a rule, a Function or a callable | `./making-a-contract-change.md` | Find your A-number in its section 4. Follow it end to end |
+| Publish a finished change to the three app repos | `./publishing-a-contract-change.md` | Compose, sync one app, let it adopt, refresh the matrix. One repo per run |
 | Build a new feature that needs new data or a new server action | `./adding-a-new-feature.md` | Open the contract request first. Build after the contract edit lands |
 | Implement a published change inside an app repo | `./adopting-a-change.md` | Update `.contract/adopted.json` as you go. Report with the app block |
 | A security hole is open, or data is being lost | `./emergency-changes.md` | Deploy first, record in the same window. Everything else stops |
@@ -104,10 +105,10 @@ Expected output: `07-guides/README.md: TABLES=4 MALFORMED=0`. Any `BAD` line is 
 Also verify every guide named in the table exists:
 
 ```bash
-for f in reading-the-contract making-a-contract-change adding-a-new-feature adopting-a-change emergency-changes firebase-access-and-keys firebase-getting-started backend-split arrival-notification-flow common-ui-patterns using-this-repo; do test -f "07-guides/$f.md" && echo "OK $f" || echo "MISSING $f"; done
+for f in reading-the-contract making-a-contract-change publishing-a-contract-change adding-a-new-feature adopting-a-change emergency-changes firebase-access-and-keys firebase-getting-started backend-split arrival-notification-flow common-ui-patterns using-this-repo; do test -f "07-guides/$f.md" && echo "OK $f" || echo "MISSING $f"; done
 ```
 
-Expected: eleven `OK` lines, zero `MISSING` lines.
+Expected: twelve `OK` lines, zero `MISSING` lines.
 
 ## 7. Report format
 

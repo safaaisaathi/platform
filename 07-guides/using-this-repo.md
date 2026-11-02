@@ -1,6 +1,6 @@
 ---
 id: using-this-repo
-title: Using This Repo, the Twelve Actions
+title: Using This Repo, the Thirteen Actions
 status: frozen
 owner: platform-owner
 updated: 2026-11-01
@@ -12,14 +12,14 @@ see_also:
   - ../06-changes/README.md
 ---
 
-# Using This Repo, the Twelve Actions
+# Using This Repo, the Thirteen Actions
 
-**Every task in this repo is one of twelve actions, A1 to A12. Find your action, read its row, do what its section says, and report with your action number.**
+**Every task in this repo is one of thirteen actions, A1 to A13. Find your action, read its row, do what its section says, and report with your action number.**
 
 ## 1. Authority order
 
 1. The contract (`02-contracts/`) wins over every PRD and over every app repo.
-2. `../AGENTS.md` is repo law. Its modes (READ, DRAFT, REVIEW) and its hard constraints bind all twelve actions.
+2. `../AGENTS.md` is repo law. Its modes (READ, DRAFT, REVIEW) and its hard constraints bind all thirteen actions.
 3. The severity policy in `../02-contracts/severity-policy.md` decides the bump, the gate and the approval for every action that changes anything.
 4. The extension model in `../02-contracts/extensions/README.md` decides core versus app-owned before any core edit.
 5. The action-specific guide wins over this file's summary. This file routes and summarizes. The guide is the detail.
@@ -35,7 +35,8 @@ see_also:
 | 5 | A2 to A9 are DRAFT in this repo only. They never touch an app repo |
 | 6 | A10 runs in an app repo and never edits this one |
 | 7 | A11 suspends every other action until it is recorded |
-| 8 | NEVER skip `../VERSION` in the report. Read it, state it, even when it did not move |
+| 8 | A13 is one step per repo. Never edit the platform repo and an app repo in one pass |
+| 9 | NEVER skip `../VERSION` in the report. Read it, state it, even when it did not move |
 
 ## 3. Read budget
 
@@ -63,6 +64,7 @@ see_also:
 | A10 | An app implements a published change | App repo harness | The app's `.contract/adopted.json`, app source | `check-adoption.ts` in the app repo |
 | A11 | A security hole or data loss | Platform owner harness + human | `03-rules/firestore.rules` or `04-functions/src/index.ts` first, then the CHG pair | `validate-contract.ts`, `check-consistency.ts`, every app blocked until confirm |
 | A12 | Someone asks who is affected or who is behind | Any harness, READ | None. Reads `06-changes/` | `check-adoption.ts` output, `impact-matrix.md` regenerated |
+| A13 | A finished contract change must reach the app repos | Platform owner harness, then one app harness at a time | `02-contracts/collections/.composed/`, `<app>/.contract/vendor/`, `<app>/.contract/fingerprint.json`, `<app>/.contract/adopted.json`, `06-changes/impact-matrix.md` | The composed schemas are committed, the fingerprint matches the vendored bytes, `check-adoption.ts --write` is idempotent |
 
 ### A1: Answer a question about the backend
 
@@ -203,11 +205,34 @@ node 08-tools/check-adoption.ts
 
 The answer to "who is affected by CHG-nnnn" is the entry's `affectedApps`. The answer to "did they implement it" is the app's status and progress in `06-changes/adoption.json`, which reports each app's own `.contract/adopted.json`.
 
+### A13: Publish a change to the app repos
+
+| Item | Value |
+|---|---|
+| When | A contract change is merged on `main` and the app repos must catch up |
+| Who | Platform owner harness for steps 1, 2 and 5. One app harness at a time for steps 3 and 4 |
+| Files | `02-contracts/collections/.composed/`, `<app>/.contract/vendor/`, `<app>/.contract/fingerprint.json`, `<app>/.contract/adopted.json`, `06-changes/impact-matrix.md` |
+| CI | The composed schemas must be committed. The fingerprint must match the vendored bytes. `check-adoption.ts --write` must be idempotent |
+
+Full procedure: `./publishing-a-contract-change.md`. One step per repo, one pull request per step.
+
+**The five steps, and who runs each.**
+
+| Step | Repo | Command or action | Writes |
+|---|---|---|---|
+| 1. Make | Platform | `./making-a-contract-change.md` section 4.0 | files |
+| 2. Compose | Platform | `node 08-tools/build-schemas.ts` | files |
+| 3. Sync | App | `node <platform>/08-tools/sync-contract.ts .` | files |
+| 4. Adopt | App | `./adopting-a-change.md`, then `bump-contract.ts` | files |
+| 5. Matrix | Platform | `node 08-tools/check-adoption.ts --write` | files |
+
+**Two rules that are not negotiable.** Compose before the sync, because the fingerprint covers the composed schemas. And bump the version pin after the adoption work, because the pin is a claim about what the app did.
+
 ## 5. Do NOT
 
 | Do NOT | Why |
 |---|---|
-| Do not invent a thirteenth action | If a task fits no action, it is A1 plus an open question, or a new action needs the platform owner's decision |
+| Do not invent a fourteenth action | If a task fits no action, it is A1 plus an open question, or a new action needs the platform owner's decision |
 | Do not treat this file as the procedure | It routes. The named guide is the procedure |
 | Do not run A10 from this repo | Adoption edits the app's own files, from the app's own PR |
 | Do not let A12 become an edit session | Reading the drift and fixing the drift are two actions with two reports |
@@ -215,18 +240,18 @@ The answer to "who is affected by CHG-nnnn" is the entry's `affectedApps`. The a
 
 ## 6. Self-verification
 
-Verify the file carries all twelve actions:
+Verify the file carries all thirteen actions:
 
 ```bash
 grep -c "^### A" 07-guides/using-this-repo.md
-# expected: 12
+# expected: 13
 ```
 
 Verify the action table has one row per action:
 
 ```bash
 grep -c "^| A" 07-guides/using-this-repo.md
-# expected: at least 12
+# expected: at least 13
 ```
 
 Verify every guide it names exists:
@@ -258,7 +283,7 @@ print(f"{doc}: TABLES={t} MALFORMED={bad}")
 PY
 ```
 
-Expected: `07-guides/using-this-repo.md: TABLES=16 MALFORMED=0`. Any `BAD` line is a failure.
+Expected: `07-guides/using-this-repo.md: TABLES=18 MALFORMED=0`. Any `BAD` line is a failure.
 
 ## 7. Report format
 

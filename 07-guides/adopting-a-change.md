@@ -21,16 +21,17 @@ This guide runs in the APP repo. Its report block is the app block in section 7.
 ## 1. Authority order
 
 1. The contract (`02-contracts/`) wins over every PRD and over every app repo. If your app's code disagrees with the schema, your app's code is wrong.
-2. `$PLATFORM/06-changes/manifest.json` is the machine list of what changed. The `CHG-*.md` file explains why. Read both.
-3. Your app's `.contract/adopted.json` is the truth about YOUR adoption. `$PLATFORM/06-changes/adoption.json` is a report of it, not a source of truth.
-4. The `migration.steps` order in the manifest entry is law. Server first, clients second, rules tighten last.
-5. `../02-contracts/extensions/README.md` decides whether a field is yours to add freely (extension) or bound by the CHG (core).
+2. `$PLATFORM/06-changes/manifest.json` is the machine list of what changed. The `CHG-*.md` file explains why. Read both. The manifest is NOT vendored, so it comes from the sibling checkout.
+3. **Your app's own `.contract/vendor/` is the contract.** Read the schema from `.contract/vendor/02-contracts/collections/<x>.schema.json`, never from `$PLATFORM/02-contracts/`. The vendored copy plus `.contract/fingerprint.json` is what your app was built against. A sibling checkout can move under your feet.
+4. Your app's `.contract/adopted.json` is the truth about YOUR adoption. `$PLATFORM/06-changes/adoption.json` is a report of it, not a source of truth.
+5. The `migration.steps` order in the manifest entry is law. Server first, clients second, rules tighten last.
+6. `.contract/vendor/02-contracts/extensions/README.md` decides whether a field is yours to add freely (extension) or bound by the CHG (core).
 
 ## 2. Hard constraints
 
 | # | Constraint |
 |---|---|
-| 1 | NEVER implement a field name that is not in the platform schema. Check `grep` before you write code |
+| 1 | NEVER implement a field name that is not in your app's vendored schema. Check `grep` against `.contract/vendor/02-contracts/` before you write code |
 | 2 | NEVER mark an item `done` without evidence. Evidence is a merged PR number |
 | 3 | NEVER set a change to `adopted` while any checklist item is open. Partial adoption is `in_progress` |
 | 4 | NEVER edit `$PLATFORM/06-changes/adoption.json` from the app repo. It is a generated report |
@@ -44,10 +45,11 @@ This guide runs in the APP repo. Its report block is the app block in section 7.
 
 | Your task | Read exactly these | Do not read |
 |---|---|---|
+| Sync the pinned copy | This file section 4.1 | The platform's schemas, the app has its own copy |
 | Find what applies to you | `$PLATFORM/06-changes/manifest.json`, your app's block in `$PLATFORM/06-changes/adoption.json` | The `CHG-*.md` files for other apps' changes |
 | Understand one change | Its `$PLATFORM/06-changes/CHG-<nnn>-<slug>.md` file | `../09-reference/` |
-| Get the exact field shape | The one schema in `$PLATFORM/02-contracts/collections/` | The other 13 schemas |
-| Add an app-only field | `../02-contracts/extensions/README.md` sections 3, 6, 8 | The core schemas |
+| Get the exact field shape | The one schema in `.contract/vendor/02-contracts/collections/` | The other 13 schemas |
+| Add an app-only field | `.contract/vendor/02-contracts/extensions/README.md` sections 3, 6, 8 | The core schemas |
 | Run the gate | `$PLATFORM/08-tools/check-adoption.ts` | Nothing else |
 | Know the deadline | The manifest entry's `migration.deadline` and `urgency` | The severity policy, unless the urgency is unclear |
 
@@ -57,15 +59,56 @@ This guide runs in the APP repo. Its report block is the app block in section 7.
 
 | Step | Do | Where |
 |---|---|---|
-| 1 | List the changes that affect your app | Platform repo, `manifest.json` |
-| 2 | Pick one change. Read its `CHG-*.md` | Platform repo, `06-changes/` |
-| 3 | Write the checklist into your `.contract/adopted.json`, status `not_started` | App repo |
-| 4 | Implement the steps in the manifest's order | App repo, plus platform deploys by a human |
-| 5 | Mark items done with PR evidence as you merge them | App repo |
-| 6 | Set `adopted` and bump `contractVersion` when every item is done | App repo |
-| 7 | Run the gate, open the PR, report | App repo |
+| 1 | Sync the pinned copy. Pull the new contract into `.contract/vendor/` | App repo, `sync-contract.ts` |
+| 2 | List the changes that affect your app | Platform repo, `manifest.json` |
+| 3 | Pick one change. Read its `CHG-*.md` | Platform repo, `06-changes/` |
+| 4 | Write the checklist into your `.contract/adopted.json`, status `not_started` | App repo |
+| 5 | Implement the steps in the manifest's order | App repo, plus platform deploys by a human |
+| 6 | Mark items done with PR evidence as you merge them | App repo |
+| 7 | Bump `contractVersion`, then set `adopted` | App repo, `bump-contract.ts` |
+| 8 | Run the gate, open the PR, report | App repo |
 
-### 4.1 Step 1: find what applies to you
+**Step 1 before step 2.** Your app reads its own vendored copy, not the sibling checkout. If you skip the sync, you implement against a contract your app was never pinned to, and the fingerprint keeps claiming the old one.
+
+### 4.1 Step 1: sync the pinned copy
+
+```bash
+node ../platform/08-tools/sync-contract.ts .
+# expected: contract synced into <path>/.contract/vendor
+```
+
+**What it writes.** `.contract/vendor/02-contracts/`, `.contract/vendor/03-rules/`, `.contract/vendor/05-decisions/` and `.contract/fingerprint.json`. The fingerprint holds the sha256 of every copied file and the contract version.
+
+**It removes the previous copy first.** A file deleted from the contract does not survive in your app. Never hand-edit the vendor folder. Delete it and re-sync.
+
+**The fingerprint is deterministic.** Same contract content, same bytes, same fingerprint. No timestamp. So CI can diff it, and an empty diff is the proof that your app is on the contract it claims.
+
+**Check it.**
+
+```bash
+python3 - <<'PY'
+import json, hashlib, pathlib
+root = pathlib.Path(".contract")
+fp = json.loads((root / "fingerprint.json").read_text())
+bad = []
+for rel, want in fp["files"].items():
+    p = root / "vendor" / rel
+    if not p.exists():
+        bad.append(rel + " missing")
+        continue
+    got = "sha256:" + hashlib.sha256(p.read_bytes()).hexdigest()
+    if got != want:
+        bad.append(rel + " changed")
+print(len(fp["files"]), "files,", len(bad), "mismatched")
+for b in bad[:5]:
+    print(" ", b)
+PY
+# expected: 68 files, 0 mismatched
+```
+
+**One app at a time.** Each app syncs in its own pull request. A bulk sync across three repos is three pull requests, not one.
+
+### 4.2 Step 2: find what applies to you
 
 ```bash
 python3 - <<'PY'
@@ -80,11 +123,11 @@ PY
 
 Expected for `driverapp` today: `CHG-0001 S2`, `CHG-0002 S1`, `CHG-0003 S1`, `CHG-0005 S1`, `CHG-0006 S1`. Change `app=` to `userapp` or `adminpanel` as needed.
 
-### 4.2 Step 2: read the change
+### 4.3 Step 3: read the change
 
 Open the entry's `explainedIn` file, for example `$PLATFORM/06-changes/CHG-0002-mask-the-raw-driver-phone.md`. Extract three things: what breaks, the migration steps in order, the deadline. Do not skim. The steps are ordered because the order is the migration.
 
-### 4.3 Step 3: write the checklist
+### 4.4 Step 4: write the checklist
 
 In the app repo, edit `.contract/adopted.json`:
 
@@ -110,12 +153,12 @@ In the app repo, edit `.contract/adopted.json`:
 
 The checklist comes from the manifest entry's `migration.steps`, filtered to the steps your app owns. Progress is `done items / total items`, computed, never estimated.
 
-### 4.4 Step 4: implement
+### 4.5 Step 5: implement
 
 Work the steps in the manifest's order. Verify every field name against the schema before you use it:
 
 ```bash
-grep -n "phoneMasked" ../platform/02-contracts/collections/driver.schema.json
+grep -n "phoneMasked" .contract/vendor/02-contracts/collections/driver.schema.json
 # expected: the property, with pattern ^[0-9]{2}X{4}[0-9]{2}$
 ```
 
@@ -128,9 +171,9 @@ flutter test
 
 For `adminpanel`, run its lint and type-check scripts (`npm run lint`, `npx tsc --noEmit` or the repo's equivalent).
 
-If the change touches a callable you call, check the signature in `$PLATFORM/02-contracts/callables.json` first, and the reason codes in `$PLATFORM/02-contracts/errors.json`. The client maps codes to copy keys. It never matches on English text.
+If the change touches a callable you call, check the signature in `.contract/vendor/02-contracts/callables.json` first, and the reason codes in `.contract/vendor/02-contracts/errors.json`. The client maps codes to copy keys. It never matches on English text.
 
-### 4.5 Step 5 and 6: mark and close
+### 4.6 Step 6: mark the items done
 
 | Status | When |
 |---|---|
@@ -140,9 +183,34 @@ If the change touches a callable you call, check the signature in `$PLATFORM/02-
 | `blocked` | You cannot proceed. Write the reason in the note |
 | `waived` | The office decided. The reason is required |
 
-Then bump `contractVersion` in `.contract/adopted.json` to the manifest entry's `contractVersion.to`. A `not_applicable` status needs a note saying why, like the existing entries in `$PLATFORM/06-changes/adoption.json`.
+A `not_applicable` status needs a note saying why, like the existing entries in `$PLATFORM/06-changes/adoption.json`.
 
-### 4.6 Step 7: the gate and the PR
+**The status and the version pin are two different acts.** The status says what you did. The pin says what contract you are on. Set the status to `adopted` only after every checklist item is done, and move the pin in the next step.
+
+### 4.7 Step 7: bump the version pin
+
+```bash
+node ../platform/08-tools/bump-contract.ts . --contract-version=1.1.0
+# expected: adoption record bumped
+```
+
+**What it writes.** The `contractVersion` field in your `.contract/adopted.json`. It preserves every per-change adoption record and prints a diff-style summary of exactly what moved.
+
+**The target is the manifest entry's `contractVersion.to`.** Never a version you remember or one you type from memory. Read it out of `$PLATFORM/06-changes/manifest.json`.
+
+**The pin moves after the work, never before it.** The pin is a claim. `1.1.0` in your file means the app has finished the work that `1.1.0` asks for. If it moves at step 1, the app claims an adoption it has not made, and the platform's matrix reports it as done while the code is still on the old contract.
+
+**An extension version moves the same way.** `bump-contract.ts --extension-version=2` moves your `extensionVersion` without touching the core contract version. The extension model never bumps the core.
+
+**Check it.**
+
+```bash
+python3 -c "import json;print(json.load(open('.contract/adopted.json'))['contractVersion'])"
+cat ../platform/VERSION
+# expected: the same version, once you have adopted it
+```
+
+### 4.8 Step 8: the gate and the PR
 
 ```bash
 node ../platform/08-tools/check-adoption.ts

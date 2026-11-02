@@ -79,10 +79,15 @@ A1 (answer a question), A8 (register an extension), A9 (deprecate a field), A10 
 | 4 | Make the contract edit | Sections 4.1 to 4.6 below |
 | 5 | Bump `../VERSION` | S1 = MAJOR, S2 = MINOR, S3 = MINOR, description or doc fix = PATCH, S4 = none |
 | 6 | Write the entry pair | `../06-changes/manifest.json` AND `../06-changes/CHG-<nnn>-<slug>.md`, same commit. The next free id is CHG-0008 |
-| 7 | Validate | `node 08-tools/validate-contract.ts` and `node 08-tools/check-consistency.ts` |
-| 8 | Report | The block in section 7 |
+| 7 | Recompose the schemas | `node 08-tools/build-schemas.ts`. **CI enforces this.** The composed schemas under `../02-contracts/collections/.composed/` must be committed, and the fingerprint in every app repo covers them |
+| 8 | Validate | `node 08-tools/validate-contract.ts` and `node 08-tools/check-consistency.ts` |
+| 9 | Report | The block in section 7 |
 
 The `CHG-*.md` file is written from `../06-changes/templates/CHANGE-template.md`. An S1 uses `../06-changes/templates/BREAKING-template.md`, which forces the migration and rollback sections.
+
+**Step 7 is not optional.** The strict runtime schemas the apps validate against are generated from the raw schemas plus the registered extensions. If they are not rebuilt and committed, the contract gate fails with "The composed schemas are out of date", and every app that syncs before the rebuild gets a fingerprint that records a strict schema that never shipped.
+
+**The handoff to the apps is a separate action.** Making the change is A2 to A7. Getting it into the three app repos is A13, in `./publishing-a-contract-change.md`.
 
 ### 4.1 A2: add a field
 
@@ -183,6 +188,14 @@ node 08-tools/check-consistency.ts
 ```
 
 If either fails, the contract is broken and nothing downstream can be trusted. Fix and re-run.
+
+Verify the composed schemas are current. CI fails the pull request otherwise, and every app that syncs before the rebuild gets a fingerprint that records a strict schema that never shipped.
+
+```bash
+cd 08-tools && node --experimental-strip-types build-schemas.ts && cd ..
+git status --porcelain 02-contracts/collections/.composed/
+# expected: no output
+```
 
 Verify the entry pair exists and agrees:
 

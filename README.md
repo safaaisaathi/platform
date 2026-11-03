@@ -1,16 +1,17 @@
 ---
 id: platform-readme
 title: Safai Saathi Platform
-status: frozen
+status: active
 owner: platform-owner
-updated: 2026-11-01
-contractVersion: "1.0.0"
+updated: 2026-11-03
+contractVersion: "2.0.0"
 audience: both
 see_also:
   - ./AGENTS.md
   - ./00-context/product-overview.md
   - ./02-contracts/README.md
   - ./07-guides/README.md
+  - ./10-handoff/README.md
 ---
 
 # Safai Saathi Platform
@@ -43,8 +44,9 @@ This repo makes the contract machine-readable, so the disagreement is caught by 
 | 05 | [`05-decisions/`](05-decisions/) | The ADRs. Why it is this way, not another way | You want the reasoning |
 | 06 | [`06-changes/`](06-changes/) | The change log. Who is affected, and have they caught up | You are shipping or adopting a change |
 | 07 | [`07-guides/`](07-guides/) | **The harness guides.** How to do the thirteen actions | You are an AI harness doing a task |
-| 08 | [`08-tools/`](08-tools/) | The scripts. Validate, check, build, sync, bump, export | You need to verify something |
+| 08 | [`08-tools/`](08-tools/) | The scripts. Validate, check, build, sync, bump, export, scan | You need to verify something |
 | 09 | [`09-reference/`](09-reference/) | The background. The audits, the blueprints, the issue register | You need the history |
+| 10 | [`10-handoff/`](10-handoff/) | **The handoff.** One ready-to-paste prompt per app, for that app's harness | You are sending this repo to an app team |
 
 ## The three rules
 
@@ -65,10 +67,28 @@ This repo makes the contract machine-readable, so the disagreement is caught by 
 | App | Stack | Repo | Auth | What it touches |
 |---|---|---|---|---|
 | **driverapp** | Flutter, Android | `safaaisaathi/driverapp` | Anonymous, then `bindDeviceToVan` | 9 collections, 4 callables |
-| **userapp** | Flutter, Android + iOS | `safaaisaathi/userapp` | Anonymous, then `bootstrapUserSession` | 7 collections, 1 callable |
-| **adminpanel** | React / Next.js, Web | `safaaisaathi/adminpanel` | Email, then `mintStaffToken` | 10 collections, 6 callables |
+| **userapp** | React 18 + Vite PWA, Web + Android | `safaaisaathi/userapp` | Anonymous, then `bootstrapUserSession` | 9 collections, 4 callables |
+| **adminpanel** | React 18 + Vite, Web | `safaaisaathi/adminpanel` | Email, then `mintStaffToken` | 12 collections, 7 callables |
 
 **All three apps depend on this repo. This repo never depends on an app repo.** That one-way direction is what makes the contract authoritative.
+
+**The stack column is the truth, not the PRD.** The user app's PRD says Flutter. The code is React. The office decides, and the change is CHG-0016. **The admin panel is React + Vite, not Next.js**, despite what its own README says.
+
+## The handoff
+
+**This repo is finished. The next step is three app harnesses.**
+
+| File | What to do with it |
+|---|---|
+| [`10-handoff/PROMPT-driverapp.md`](10-handoff/PROMPT-driverapp.md) | Paste into the driver app's harness |
+| [`10-handoff/PROMPT-userapp.md`](10-handoff/PROMPT-userapp.md) | Paste into the user app's harness |
+| [`10-handoff/PROMPT-adminpanel.md`](10-handoff/PROMPT-adminpanel.md) | Paste into the admin panel's harness |
+
+**Each prompt is a complete brief.** It has the authority order, the hard constraints, the read budget, the step-by-step procedure, the traps, the verification commands and the report block. It names the changes that app must adopt, in order, with the acceptance check for each one.
+
+**The harness runs in the app repo.** The platform repo has to be a sibling of it.
+
+**One app per run.** Do not paste two prompts into one session.
 
 ## Getting started
 
@@ -87,13 +107,25 @@ Then read [`07-guides/README.md`](07-guides/README.md). It is a router: *"if you
 ```bash
 node 08-tools/validate-contract.ts      # every schema is valid, every enum resolves
 node 08-tools/check-consistency.ts       # the schema and the changelog agree
+node 08-tools/check-features.ts          # every feature entry is valid and every ref resolves
 node 08-tools/build-schemas.ts           # compose the strict runtime schemas
 node 08-tools/sync-contract.ts <app>    # vendor the contract into an app repo
+node 08-tools/scan-usage.ts <app>       # what does this app actually touch
+node 08-tools/check-conflicts.ts <app>  # where does it disagree with the contract
 node 08-tools/check-adoption.ts <app>   # which app is behind on which change
 node 08-tools/check-adoption.ts --write # regenerate the impact matrix
 ```
 
 **The first two are the gate.** They must pass before a contract change merges. See [`.github/workflows/contract-gate.yml`](.github/workflows/contract-gate.yml).
+
+**The backend has its own build.**
+
+```bash
+cd 04-functions && npm run build   # tsc, strict mode. The deploy script builds first
+cd 04-functions && npm test        # the Node test runner
+```
+
+**Why the build is first in the deploy.** `main` points at `lib/index.js`, which is the compiled output. Deploying without building uploads the **previous** build. That is how a function gets renamed in the source and stays the old one in production.
 
 ## The versioning
 
@@ -130,21 +162,31 @@ node 08-tools/check-adoption.ts --write # regenerate the impact matrix
 
 | What | State |
 |---|---|
-| Contract version | `1.0.0` |
-| Next release | `2.0.0`. The breaking one, the rules rewrite |
-| Collections documented | 14 |
-| Frozen enums | 9 |
+| Contract version | `2.0.0` |
+| Next release | `2.1.0`. Additive only. `2.0.0` was the breaking one, the rules rewrite |
+| Collections documented | 18 |
+| Frozen enums | 11 |
 | Shared constants | 35 |
 | Custom claims | 8 |
 | FCM topics | 4 |
-| Callables specified | 11, **0 implemented** |
-| Reason codes | 9 |
-| Registered extensions | 1. `driverapp` owns `trips.id` |
-| Apps wired | 1 of 3. `driverapp` has a vendored copy, a fingerprint and a real adoption record |
-| Rules | **The old ones. The rewrite is `CHG-0003`, it is P0** |
+| Callables specified | **22. 15 callables and 7 server functions. All 22 are built** |
+| Reason codes | 10 |
+| Registered extensions | 2. `driverapp` owns `trips.id`. `userapp` owns the five app-only `collectionFeedback` fields |
+| Feature entries | 5. The cross-app journeys, with each app's slice and what is still missing |
+| Apps wired | 1 of 3. `driverapp` has a vendored copy, a fingerprint and a real adoption record. `userapp` and `adminpanel` have neither |
+| Rules | **PHASE 1 is deployed, the loose one. PHASE 2, `firestore.strict.rules`, is written and waiting. The switch is `03-rules/README.md` section 5** |
+| Backend copies | **One. It lives at `04-functions/`. The three copies in the app repos are deleted by CHG-0009** |
 | Composite indexes | 4 exist. `vans(routeId,status)` and `complaints(wardId,createdAt)` are needed and missing |
 
 **The one-page view is [`06-changes/impact-matrix.md`](06-changes/impact-matrix.md).** That is what you paste into a standup. Its section 1 is generated by `node 08-tools/check-adoption.ts --write`.
+
+### The three P0s
+
+| Change | What it is | By when |
+|---|---|---|
+| **CHG-0008** | One Firebase project. The user app is pointed at a project that does not exist | 2026-11-09 |
+| **CHG-0011** | The server writes the ward duty board. A citizen can currently mark any ward as done | 2026-11-09 |
+| **CHG-0012** | No raw phone in a readable document. Every staff member can currently read a complainant's number | 2026-11-09 |
 
 ## The repo rules
 

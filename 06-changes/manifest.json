@@ -3,8 +3,8 @@
   "$id": "https://safaaisaathi.contracts/changes/manifest.json",
   "title": "Safai Saathi change manifest",
   "description": "The machine-readable list of every change to the contract. Each entry pairs with a CHG-nnn-*.md file in this folder. The two change together, never one alone.",
-  "contractVersion": "1.0.0",
-  "generatedAt": "2026-11-02",
+  "contractVersion": "2.0.0",
+  "generatedAt": "2026-11-03",
   "changes": [
     {
       "id": "CHG-0001",
@@ -240,6 +240,327 @@
         "oldFieldWritableUntil": null
       },
       "explainedIn": "EXT-0001-driverapp-trip-id.md",
+      "supersedes": null
+    },
+    {
+      "id": "CHG-0008",
+      "title": "Put all three apps on one Firebase project",
+      "severity": "S1",
+      "priority": "P0",
+      "breaking": true,
+      "date": "2026-11-02",
+      "author": "platform-owner",
+      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
+      "affectedApps": ["driverapp", "userapp", "adminpanel"],
+      "affectedCollections": [],
+      "affectedFields": [],
+      "migration": {
+        "required": true,
+        "steps": [
+          "Create the app config for each app from the ONE project safaaisaathi-63a87. Never commit a service account key",
+          "userapp: delete the hardcoded fallback project id safai-saathi-panchmahal from apps/citizen_app/src/services/firebaseService.ts. Read the project id from the environment only",
+          "adminpanel: point the runtime config at safaaisaathi-63a87. The panel currently asks the operator to paste the config into the browser",
+          "driverapp: verify it is on safaaisaathi-63a87. It already is",
+          "Deploy the rules LAST"
+        ],
+        "deadline": "2026-11-09"
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": null,
+        "oldFieldWritableUntil": "2026-11-09"
+      },
+      "explainedIn": "CHG-0008-one-firebase-project.md",
+      "supersedes": null
+    },
+    {
+      "id": "CHG-0009",
+      "title": "Move the backend source into the platform repo and delete the copies",
+      "severity": "S1",
+      "priority": "P1",
+      "breaking": true,
+      "date": "2026-11-02",
+      "author": "platform-owner",
+      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
+      "affectedApps": ["driverapp", "userapp", "adminpanel"],
+      "affectedCollections": [],
+      "affectedFields": [],
+      "migration": {
+        "required": true,
+        "steps": [
+          "The backend now lives at platform/04-functions. It has 15 callables and 7 server functions",
+          "userapp: delete backend/functions and backend/firestore.rules. They are copies that have already drifted",
+          "userapp: delete the committed build artifact safai-saathi-web-app.zip. It contains a copy of itself",
+          "adminpanel: delete the committed Pages build in docs/. The build output does not belong in git",
+          "Deploy the functions from the platform repo only",
+          "Verify: grep -rn 'onCall\\|onWrite\\|onSchedule' in each app repo. Zero hits outside 04-functions"
+        ],
+        "deadline": "2026-11-15"
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": null,
+        "oldFieldWritableUntil": null
+      },
+      "explainedIn": "CHG-0009-the-backend-lives-in-the-platform-repo.md",
+      "supersedes": null
+    },
+    {
+      "id": "CHG-0010",
+      "title": "Adopt the wider complaint statuses and categories",
+      "severity": "S1",
+      "priority": "P1",
+      "breaking": true,
+      "date": "2026-11-02",
+      "author": "platform-owner",
+      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
+      "affectedApps": ["driverapp", "userapp", "adminpanel"],
+      "affectedCollections": ["complaints"],
+      "affectedFields": [
+        { "path": "complaints.status", "change": "added", "to": "pending_verification, auto_resolved, reopened" },
+        { "path": "complaints.category", "change": "added", "to": "dead_animal, public_toilet, construction_debris, hazardous_waste" }
+      ],
+      "migration": {
+        "required": true,
+        "steps": [
+          "userapp: widen the ComplaintStatus type to the seven contract values",
+          "adminpanel: widen the ComplaintStatus type to the seven contract values",
+          "adminpanel: widen the ComplaintCategory type to the eight contract values",
+          "Add the four new category labels to the user app's gu and en localization files",
+          "Map the admin panel's local notice target 'citizens' onto the contract's 'all'. Do not add a new enum value",
+          "Do NOT migrate the stored data. The original four statuses and four categories are still valid"
+        ],
+        "deadline": "2026-11-15"
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": null,
+        "oldFieldWritableUntil": null
+      },
+      "explainedIn": "CHG-0010-wider-complaint-statuses-and-categories.md",
+      "supersedes": null
+    },
+    {
+      "id": "CHG-0011",
+      "title": "The server writes the ward duty board, not the citizen",
+      "severity": "S0",
+      "priority": "P0",
+      "breaking": true,
+      "date": "2026-11-02",
+      "author": "platform-owner",
+      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
+      "affectedApps": ["driverapp", "userapp", "adminpanel"],
+      "affectedCollections": ["wardDuty"],
+      "affectedFields": [],
+      "migration": {
+        "required": true,
+        "steps": [
+          "wardDuty is a new core collection. The document id is {IST date}_{wardId}",
+          "userapp: DELETE the wardDuty write in apps/citizen_app/src/services/firebaseService.ts. A citizen may not decide that a ward's duty is over",
+          "userapp: call getWardDutyStatus instead of reading the document directly",
+          "driverapp: call markWardDone. The server writes wardDuty",
+          "adminpanel: call markWardDutyCompleted",
+          "Deploy the wardDuty rule. It denies every client write"
+        ],
+        "deadline": "2026-11-09"
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": null,
+        "oldFieldWritableUntil": "2026-11-09"
+      },
+      "explainedIn": "CHG-0011-the-server-writes-the-ward-duty-board.md",
+      "supersedes": null
+    },
+    {
+      "id": "CHG-0012",
+      "title": "No raw phone number in a document a client can read",
+      "severity": "S0",
+      "priority": "P0",
+      "breaking": true,
+      "date": "2026-11-02",
+      "author": "platform-owner",
+      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
+      "affectedApps": ["userapp", "adminpanel"],
+      "affectedCollections": ["complaints", "staff", "complaintPhones"],
+      "affectedFields": [
+        { "path": "complaints.phone", "change": "removed" },
+        { "path": "complaints.assignedPhone", "change": "removed" },
+        { "path": "complaints.escalatedToPhone", "change": "removed" },
+        { "path": "staff.phone", "change": "renamed", "to": "staff.phoneMasked" }
+      ],
+      "migration": {
+        "required": true,
+        "steps": [
+          "The complaint's raw phone moves to complaintPhones/{complaintId}. Only district staff may read it",
+          "userapp: delete phone, assignedPhone and escalatedToPhone from the Complaint type and from the sync payload",
+          "userapp: write the raw phone to complaintPhones/{complaintId} and the masked one to complaints.phoneMasked",
+          "adminpanel: delete the same three fields from its Complaint type. Read the raw phone from complaintPhones",
+          "adminpanel: read staff.phoneMasked, not staff.phone",
+          "Backfill the existing documents before the rules tighten. A script moves the raw values out",
+          "Deploy the rules LAST. Until then the old rules keep the old clients working"
+        ],
+        "deadline": "2026-11-09"
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": "2026-11-09",
+        "oldFieldWritableUntil": "2026-11-09"
+      },
+      "explainedIn": "CHG-0012-no-raw-phone-in-a-readable-document.md",
+      "supersedes": null
+    },
+    {
+      "id": "CHG-0013",
+      "title": "One callable for the admin complaint write, and no client named staff member",
+      "severity": "S1",
+      "priority": "P1",
+      "breaking": true,
+      "date": "2026-11-02",
+      "author": "platform-owner",
+      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
+      "affectedApps": ["adminpanel", "userapp"],
+      "affectedCollections": ["complaints"],
+      "affectedFields": [],
+      "migration": {
+        "required": true,
+        "steps": [
+          "adminResolveComplaint is replaced by setComplaintStatus. The input is { complaintId, status, note?, resolvedPhotoUrl? }",
+          "adminpanel: stop sending workerId and workerName. The server reads the staff member from the token and the live staff doc",
+          "adminpanel: call citizenVerifyResolution and reopenComplaint from the complaint detail screen, not from a client write",
+          "userapp: call citizenVerifyResolution and reopenComplaint. Delete the direct complaint update",
+          "The status values are the seven from CHG-0010"
+        ],
+        "deadline": "2026-11-15"
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": null,
+        "oldFieldWritableUntil": "2026-11-15"
+      },
+      "explainedIn": "CHG-0013-one-admin-complaint-write.md",
+      "supersedes": null
+    },
+    {
+      "id": "CHG-0014",
+      "title": "The admin panel must talk to Firebase, not to localStorage",
+      "severity": "S2",
+      "priority": "P2",
+      "breaking": false,
+      "date": "2026-11-02",
+      "author": "platform-owner",
+      "contractVersion": { "from": "1.0.0", "to": "1.1.0" },
+      "affectedApps": ["adminpanel"],
+      "affectedCollections": [
+        "wards", "routes", "vans", "trips", "complaints", "notices",
+        "ratings", "staff", "drivers"
+      ],
+      "affectedFields": [],
+      "migration": {
+        "required": true,
+        "steps": [
+          "Replace the localStorage data layer in src/services/dataService.ts with a Firestore repository",
+          "Sign in and call mintStaffToken. Sign in with the custom token",
+          "Scope every query by the wardIds claim. An inspector sees their wards, the DDO sees the district",
+          "Move src/services/seedData.ts out of the runtime path into a seed script",
+          "Delete the duplicate screens. There are two lineages, for example A3_LiveMap and A15_LiveMap",
+          "Write the PRD the platform points at, docs/PRD-3-admin-panel.md. It does not exist"
+        ],
+        "deadline": null
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": null,
+        "oldFieldWritableUntil": null
+      },
+      "explainedIn": "CHG-0014-the-admin-panel-must-talk-to-firebase.md",
+      "supersedes": null
+    },
+    {
+      "id": "CHG-0015",
+      "title": "Fix the PRD pointers and compute the source hash",
+      "severity": "S2",
+      "priority": "P3",
+      "breaking": false,
+      "date": "2026-11-02",
+      "author": "platform-owner",
+      "contractVersion": { "from": "1.0.0", "to": "1.1.0" },
+      "affectedApps": ["driverapp", "userapp", "adminpanel"],
+      "affectedCollections": [],
+      "affectedFields": [],
+      "migration": {
+        "required": true,
+        "steps": [
+          "userapp: move 'PRD-1-user-app (1).md' to 'docs/PRD-1-user-app.md'. The filename with a space and a (1) is a download artefact",
+          "adminpanel: write 'docs/PRD-3-admin-panel.md'. The platform points at it and it does not exist",
+          "driverapp: confirm the path docs/PRD-2-driver-app.md matches the pointer",
+          "The platform owner then computes the sha256 of each PRD and writes it into sourceHash. It says 'pending' today, so drift detection does not work"
+        ],
+        "deadline": null
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": null,
+        "oldFieldWritableUntil": null
+      },
+      "explainedIn": "CHG-0015-fix-the-prd-pointers.md",
+      "supersedes": null
+    },
+    {
+      "id": "CHG-0016",
+      "title": "The user app's stack is React, not Flutter",
+      "severity": "S2",
+      "priority": "P2",
+      "breaking": false,
+      "date": "2026-11-02",
+      "author": "platform-owner",
+      "contractVersion": { "from": "1.0.0", "to": "1.1.0" },
+      "affectedApps": ["userapp"],
+      "affectedCollections": [],
+      "affectedFields": [],
+      "migration": {
+        "required": true,
+        "steps": [
+          "The office decides one thing: keep the React PWA, or rewrite it in Flutter",
+          "If React stays, PRD-1 section 0 is corrected to describe the React stack and the platform's PRD pointer records the decision",
+          "If Flutter wins, the React code is the reference for the behaviour and the schema, not the implementation",
+          "No schema changes. The contract does not care which language an app is written in"
+        ],
+        "deadline": null
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": null,
+        "oldFieldWritableUntil": null
+      },
+      "explainedIn": "CHG-0016-the-user-app-stack-is-react.md",
+      "supersedes": null
+    },
+    {
+      "id": "EXT-0002",
+      "title": "The user app owns collectionFeedback",
+      "severity": "S3",
+      "priority": "P4",
+      "breaking": false,
+      "date": "2026-11-02",
+      "author": "userapp-team",
+      "kind": "extension",
+      "app": "userapp",
+      "extensionVersion": "1",
+      "affectedApps": ["userapp"],
+      "affectedCollections": ["collectionFeedback"],
+      "affectedFields": [
+        { "path": "collectionFeedback.id", "change": "added", "ownedBy": "userapp" },
+        { "path": "collectionFeedback.reason", "change": "added", "ownedBy": "userapp" },
+        { "path": "collectionFeedback.note", "change": "added", "ownedBy": "userapp" },
+        { "path": "collectionFeedback.timestamp", "change": "added", "ownedBy": "userapp" },
+        { "path": "collectionFeedback.syncStatus", "change": "added", "ownedBy": "userapp" }
+      ],
+      "migration": {
+        "required": true,
+        "steps": [
+          "The collectionFeedback collection is now in the core contract with the five fields every app must agree on",
+          "The user app owns the five app-only fields in .contract/extensions/userapp.json. The platform owner has already created that file and registered its hash",
+          "The user app keeps the extension file exactly as it is. If it changes, bump extensionVersion and ask the platform owner to re-register the hash"
+        ],
+        "deadline": null
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": null,
+        "oldFieldWritableUntil": null
+      },
+      "explainedIn": "EXT-0002-userapp-collection-feedback.md",
       "supersedes": null
     }
   ],

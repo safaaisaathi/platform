@@ -7,31 +7,82 @@
     "rule": "A write is a rule when the claim is the authority, and a callable when a live document is the authority.",
     "why": "A token's claims are a snapshot. They can be up to an hour old. If the authority is a live document, only the server can see the current value, so only the server can make the decision.",
     "examples": [
-      { "write": "The driver writes its own van's telemetry", "authority": "The vanId claim", "mechanism": "rule" },
-      { "write": "The citizen files their own complaint", "authority": "The deviceId claim", "mechanism": "rule" },
-      { "write": "The admin resolves a complaint", "authority": "The live staff doc", "mechanism": "callable" }
+      {
+        "write": "The driver writes its own van's telemetry",
+        "authority": "The vanId claim",
+        "mechanism": "rule"
+      },
+      {
+        "write": "The citizen files their own complaint",
+        "authority": "The deviceId claim",
+        "mechanism": "rule"
+      },
+      {
+        "write": "The admin resolves a complaint",
+        "authority": "The live staff doc",
+        "mechanism": "callable"
+      }
     ]
+  },
+  "x-lifecycle": {
+    "planned": "Designed and specified here, not built yet. The app may code against it, but a call to it fails.",
+    "implemented": "Built in 04-functions/ and it type-checks clean with the repo's strict tsconfig. The behavioural proof is the Firestore emulator suite, which runs against the emulator and not against this file. A callable marked implemented is deployed and answers. A callable marked planned is a not-found error at runtime, which looks like a network bug.",
+    "rule": "An app may only call a callable whose lifecycle is implemented. Calling a planned callable produces a not-found error at runtime, which looks like a network bug.",
+    "serverFunctions": "x-server-functions holds the functions that are NOT called by a client. They run on a Firestore event, a schedule, or an inbound webhook. The client only sees their EFFECT. A client must never call these directly."
   },
   "x-callables": {
     "bindDeviceToVan": {
       "type": "https.onCall",
-      "status": "NEW. Not implemented.",
-      "calledBy": ["driverapp"],
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/callables/identity.ts"
+      },
+      "calledBy": [
+        "driverapp"
+      ],
       "purpose": "Bind an install id to a van and mint the driver's custom token. The identity anchor.",
       "input": {
-        "driverCode": { "type": "string", "pattern": "^[A-Z]{2}-[0-9]{4}$", "required": true },
-        "installId": { "type": "string", "required": true, "note": "A stable per-install uuid. NOT a per-launch value. Otherwise a second launch creates a second binding." }
+        "driverCode": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}-[0-9]{4}$",
+          "required": true
+        },
+        "installId": {
+          "type": "string",
+          "required": true,
+          "note": "A stable per-install uuid. NOT a per-launch value. Otherwise a second launch creates a second binding."
+        }
       },
       "output": {
-        "token": { "type": "string" },
-        "vanId": { "type": "string" },
-        "driverId": { "type": "string" },
-        "claimMode": { "type": "string", "enumRef": "enums.json#/$defs/vanDevice.claimMode" }
+        "token": {
+          "type": "string"
+        },
+        "vanId": {
+          "type": "string"
+        },
+        "driverId": {
+          "type": "string"
+        },
+        "claimMode": {
+          "type": "string",
+          "enumRef": "enums.json#/$defs/vanDevice.claimMode"
+        }
       },
-      "reasonCodes": ["vanAlreadyClaimed", "invalidInput", "rateLimited", "notAuthorised", "internal"],
+      "reasonCodes": [
+        "vanAlreadyClaimed",
+        "invalidInput",
+        "rateLimited",
+        "notAuthorised",
+        "internal"
+      ],
       "authority": {
-        "reads": ["drivers/{driverCode}", "vanDevices/{vanId}"],
-        "writes": ["vanDevices/{vanId}"],
+        "reads": [
+          "drivers/{driverCode}",
+          "vanDevices/{vanId}"
+        ],
+        "writes": [
+          "vanDevices/{vanId}"
+        ],
         "transaction": "A Firestore transaction on vanDevices/{vanId}. Two phones presenting the same code at the same time both try to claim. The transaction settles it. The loser gets vanAlreadyClaimed, not a silent double-bind."
       },
       "firstClaim": {
@@ -55,21 +106,44 @@
     },
     "bootstrapUserSession": {
       "type": "https.onCall",
-      "status": "NEW. Not implemented.",
-      "calledBy": ["userapp"],
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/callables/identity.ts"
+      },
+      "calledBy": [
+        "userapp"
+      ],
       "purpose": "The user app's session bootstrap. Resolves the citizen's ward to a route and mints the token.",
       "input": {
-        "deviceId": { "type": "string", "required": true },
-        "wardId": { "type": "string", "required": true }
+        "deviceId": {
+          "type": "string",
+          "required": true
+        },
+        "wardId": {
+          "type": "string",
+          "required": true
+        }
       },
       "output": {
-        "token": { "type": "string" },
-        "deviceId": { "type": "string" },
-        "routeId": { "type": "string" }
+        "token": {
+          "type": "string"
+        },
+        "deviceId": {
+          "type": "string"
+        },
+        "routeId": {
+          "type": "string"
+        }
       },
-      "reasonCodes": ["notFound", "invalidInput", "internal"],
+      "reasonCodes": [
+        "notFound",
+        "invalidInput",
+        "internal"
+      ],
       "authority": {
-        "reads": ["wards/{wardId}"],
+        "reads": [
+          "wards/{wardId}"
+        ],
         "writes": [],
         "note": "The routeId comes from the ward doc, NOT from the client. If the client chose its own routeId it could read any route's trips. This is the same bug class as the badge code as a client parameter."
       },
@@ -78,22 +152,49 @@
     },
     "mintStaffToken": {
       "type": "https.onCall",
-      "status": "NEW. Not implemented.",
-      "calledBy": ["adminpanel"],
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/callables/identity.ts"
+      },
+      "calledBy": [
+        "adminpanel"
+      ],
       "purpose": "The admin panel's session. Reads the staff doc and mints the staff claims.",
       "input": {
-        "staffId": { "type": "string", "required": true }
+        "staffId": {
+          "type": "string",
+          "required": true
+        }
       },
       "output": {
-        "token": { "type": "string" },
-        "role": { "type": "string", "enumRef": "enums.json#/$defs/staff.role" },
-        "staffId": { "type": "string" },
-        "wardIds": { "type": "string[]" },
-        "scopeRefreshedAt": { "type": "string", "format": "date-time", "note": "The panel shows this so the office knows the scope may be stale." }
+        "token": {
+          "type": "string"
+        },
+        "role": {
+          "type": "string",
+          "enumRef": "enums.json#/$defs/staff.role"
+        },
+        "staffId": {
+          "type": "string"
+        },
+        "wardIds": {
+          "type": "string[]"
+        },
+        "scopeRefreshedAt": {
+          "type": "string",
+          "format": "date-time",
+          "note": "The panel shows this so the office knows the scope may be stale."
+        }
       },
-      "reasonCodes": ["notAuthorised", "notFound", "internal"],
+      "reasonCodes": [
+        "notAuthorised",
+        "notFound",
+        "internal"
+      ],
       "authority": {
-        "reads": ["staff/{staffId}"],
+        "reads": [
+          "staff/{staffId}"
+        ],
         "writes": [],
         "note": "The staff scope comes from the live doc, not from a form field. Otherwise a client could mint itself an inspector's scope."
       },
@@ -101,75 +202,210 @@
     },
     "startShift": {
       "type": "https.onCall",
-      "status": "NEW. Not implemented.",
-      "calledBy": ["driverapp"],
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/callables/shift.ts"
+      },
+      "calledBy": [
+        "driverapp"
+      ],
       "purpose": "Start the driver's shift. Creates the trip and sets the van's open-trip marker, atomically.",
       "input": {
-        "driverId": { "type": "string", "required": true },
-        "date": { "type": "string", "format": "date-time", "required": true, "note": "The IST midnight instant of the shift's day, not a date string." }
+        "driverId": {
+          "type": "string",
+          "required": true
+        },
+        "date": {
+          "type": "string",
+          "format": "date-time",
+          "required": true,
+          "note": "The IST midnight instant of the shift's day, not a date string."
+        }
       },
       "output": {
-        "token": { "type": "string", "note": "A fresh token with currentTripId." },
-        "tripId": { "type": "string" },
-        "vanId": { "type": "string" }
+        "token": {
+          "type": "string",
+          "note": "A fresh token with currentTripId."
+        },
+        "tripId": {
+          "type": "string"
+        },
+        "vanId": {
+          "type": "string"
+        }
       },
-      "reasonCodes": ["vanHeldByAnotherDriver", "staleMarker", "invalidInput", "internal"],
+      "reasonCodes": [
+        "vanHeldByAnotherDriver",
+        "staleMarker",
+        "invalidInput",
+        "internal"
+      ],
       "authority": {
-        "reads": ["vans/{vanId}", "trips/{currentTripId}", "drivers/{driverId}"],
-        "writes": ["trips/{newTripId}", "vans/{vanId}"],
-        "transaction": "On the van document. If van.currentTripId is set and status is on_shift, read the trip. If trip.driverId is not this driver, reject with vanHeldByAnotherDriver. If trip.vanId is not this van, reject with staleMarker. Otherwise RESUME and write nothing. Else create the trip and set the marker."
+        "reads": [
+          "vans/{vanId}",
+          "trips/{currentTripId}",
+          "drivers/{driverId}",
+          "routes/{routeId}"
+        ],
+        "writes": [
+          "trips/{newTripId}",
+          "vans/{vanId}",
+          "wardDuty/{date}_{wardId}"
+        ],
+        "transaction": "On the van document. If van.currentTripId is set and status is on_shift, read the trip. If trip.driverId is not this driver, reject with vanHeldByAnotherDriver. If trip.vanId is not this van, reject with staleMarker. Otherwise RESUME and write nothing. Else create the trip and set the marker.",
+        "wardDuty": "On create, the callable writes one wardDuty/{date}_{wardId} doc per ward in the route's wardIds, with status = in_progress. The citizen app reads those docs to show the daily tick. The citizen NEVER writes them. CHG-0011."
       },
       "resumeWritesNothing": "The resume branch creates no second trip. A resume never duplicates.",
       "whyNotARule": "The duplicate-trip race is real. Two clients on one van both read 'no open trip', both create a trip, and both write vans.currentTripId. The last write wins and one shift is orphaned."
     },
     "endShift": {
       "type": "https.onCall",
-      "status": "NEW. Not implemented.",
-      "calledBy": ["driverapp"],
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/callables/shift.ts"
+      },
+      "calledBy": [
+        "driverapp"
+      ],
       "purpose": "End the driver's shift. Closes the trip and clears the van's marker.",
-      "input": { "tripId": { "type": "string", "required": true } },
-      "output": { "endedAt": { "type": "string", "format": "date-time" } },
-      "reasonCodes": ["notAuthorised", "notFound", "internal"],
+      "input": {
+        "tripId": {
+          "type": "string",
+          "required": true
+        }
+      },
+      "output": {
+        "endedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      },
+      "reasonCodes": [
+        "notAuthorised",
+        "notFound",
+        "invalidState",
+        "internal"
+      ],
       "authority": {
-        "reads": ["trips/{tripId}", "vans/{vanId}"],
-        "writes": ["trips/{tripId}", "vans/{vanId}"],
+        "reads": [
+          "trips/{tripId}",
+          "vans/{vanId}"
+        ],
+        "writes": [
+          "trips/{tripId}",
+          "vans/{vanId}"
+        ],
         "transaction": "On the van document. Clear currentTripId only if it still points at this trip."
       }
     },
     "markWardDone": {
       "type": "https.onCall",
-      "status": "NEW. Not implemented.",
-      "calledBy": ["driverapp"],
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/callables/shift.ts"
+      },
+      "calledBy": [
+        "driverapp"
+      ],
       "purpose": "Record a ward as collected during the current trip.",
       "input": {
-        "tripId": { "type": "string", "required": true },
-        "wardId": { "type": "string", "required": true },
-        "flagged": { "type": "boolean", "required": false, "note": "True when the driver marked the ward done from outside its radius. A tamper signal for the office." }
+        "tripId": {
+          "type": "string",
+          "required": true
+        },
+        "wardId": {
+          "type": "string",
+          "required": true
+        },
+        "flagged": {
+          "type": "boolean",
+          "required": false,
+          "note": "True when the driver marked the ward done from outside its radius. A tamper signal for the office."
+        }
       },
-      "output": { "wardsDone": { "type": "array" } },
-      "reasonCodes": ["notAuthorised", "notFound", "invalidInput", "internal"],
+      "output": {
+        "wardsDone": {
+          "type": "array"
+        }
+      },
+      "reasonCodes": [
+        "notAuthorised",
+        "notFound",
+        "invalidState",
+        "invalidInput",
+        "internal"
+      ],
       "authority": {
-        "reads": ["trips/{tripId}"],
-        "writes": ["trips/{tripId}"],
-        "scope": "The ward must be in the trip's wardIds snapshot. The snapshot is taken at shift start, so a mid-shift change to the driver's allotment does not rewrite today's record."
+        "reads": [
+          "trips/{tripId}"
+        ],
+        "writes": [
+          "trips/{tripId}",
+          "wardDuty/{date}_{wardId}"
+        ],
+        "scope": "The ward must be in the trip's wardIds snapshot. The snapshot is taken at shift start, so a mid-shift change to the driver's allotment does not rewrite today's record.",
+        "wardDuty": "The same write also flips wardDuty/{date}_{wardId}.status to completed. That is how the citizen's daily tick becomes true. CHG-0011."
       },
       "outOfOrder": "Marks may be made out of order. Any undone ward counts, not only the next one."
     },
     "setComplaintStatus": {
       "type": "https.onCall",
-      "status": "NEW. Not implemented.",
-      "calledBy": ["adminpanel"],
-      "purpose": "The admin panel resolves, assigns or escalates a complaint.",
-      "input": {
-        "complaintId": { "type": "string", "required": true },
-        "status": { "type": "string", "enumRef": "enums.json#/$defs/complaint.status", "required": true },
-        "note": { "type": "string", "required": false }
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/callables/admin.ts"
       },
-      "output": { "updatedAt": { "type": "string", "format": "date-time" } },
-      "reasonCodes": ["notAuthorised", "notFound", "invalidInput", "internal"],
+      "calledBy": [
+        "adminpanel"
+      ],
+      "purpose": "The admin panel resolves, assigns or escalates a complaint.",
+      "replaces": "adminResolveComplaint. CHG-0013. The old callable took workerId and workerName from the client. Those are forgeable. The server knows who the staff member is from the token.",
+      "input": {
+        "complaintId": {
+          "type": "string",
+          "required": true
+        },
+        "status": {
+          "type": "string",
+          "enumRef": "enums.json#/$defs/complaint.status",
+          "required": true
+        },
+        "note": {
+          "type": "string",
+          "required": false
+        },
+        "resolvedPhotoUrl": {
+          "type": "string",
+          "required": false,
+          "note": "The cleaning proof photo. Storage path complaints/{complaintId}/resolved.jpg."
+        }
+      },
+      "output": {
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "autoResolveDeadline": {
+          "type": "string",
+          "format": "date-time",
+          "note": "Present only when the new status is pending_verification. The server computes it."
+        }
+      },
+      "reasonCodes": [
+        "notAuthorised",
+        "notFound",
+        "invalidInput",
+        "invalidState",
+        "internal"
+      ],
       "authority": {
-        "reads": ["staff/{staffId}", "complaints/{complaintId}", "wards/{wardId}"],
-        "writes": ["complaints/{complaintId}"],
+        "reads": [
+          "staff/{staffId}",
+          "complaints/{complaintId}",
+          "wards/{wardId}"
+        ],
+        "writes": [
+          "complaints/{complaintId}"
+        ],
         "checks": [
           "The caller is authenticated",
           "staff/{staffId}.active is true. This is the instant-revocation check.",
@@ -180,88 +416,697 @@
     },
     "publishNotice": {
       "type": "https.onCall",
-      "status": "NEW. Not implemented.",
-      "calledBy": ["adminpanel"],
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/callables/admin.ts"
+      },
+      "calledBy": [
+        "adminpanel"
+      ],
       "purpose": "The admin panel sends a notice to a van, a ward, or everyone.",
       "input": {
-        "targetType": { "type": "string", "enumRef": "enums.json#/$defs/notice.targetType", "required": true },
-        "targetId": { "type": "string", "required": false, "note": "Null or empty for targetType = all." },
-        "message": { "type": "string", "required": true }
+        "targetType": {
+          "type": "string",
+          "enumRef": "enums.json#/$defs/notice.targetType",
+          "required": true
+        },
+        "targetId": {
+          "type": "string",
+          "required": false,
+          "note": "Null or empty for targetType = all."
+        },
+        "message": {
+          "type": "string",
+          "required": true
+        }
       },
-      "output": { "noticeId": { "type": "string" } },
-      "reasonCodes": ["notAuthorised", "invalidInput", "internal"],
+      "output": {
+        "noticeId": {
+          "type": "string"
+        }
+      },
+      "reasonCodes": [
+        "notAuthorised",
+        "invalidInput",
+        "internal"
+      ],
       "authority": {
-        "reads": ["staff/{staffId}"],
-        "writes": ["notices/{noticeId}"],
+        "reads": [
+          "staff/{staffId}"
+        ],
+        "writes": [
+          "notices/{noticeId}"
+        ],
         "sideEffect": "Sends the FCM push to the topic. Uses the topics.json map."
       }
     },
     "upsertDriver": {
       "type": "https.onCall",
-      "status": "NEW. Not implemented.",
-      "calledBy": ["adminpanel"],
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/callables/admin.ts"
+      },
+      "calledBy": [
+        "adminpanel"
+      ],
       "purpose": "Create or update a driver record. Masks the phone on the way in.",
       "input": {
-        "code": { "type": "string", "pattern": "^[A-Z]{2}-[0-9]{4}$", "required": true },
-        "name": { "type": "string", "required": true },
-        "phone": { "type": "string", "required": true, "note": "The RAW phone. The callable masks it into phoneMasked and stores the raw value in staffPhones/{code}." },
-        "vanId": { "type": "string", "required": false },
-        "routeId": { "type": "string", "required": false },
-        "wardIds": { "type": "string[]", "required": false },
-        "active": { "type": "boolean", "required": false }
+        "code": {
+          "type": "string",
+          "pattern": "^[A-Z]{2}-[0-9]{4}$",
+          "required": true
+        },
+        "name": {
+          "type": "string",
+          "required": true
+        },
+        "phone": {
+          "type": "string",
+          "required": true,
+          "note": "The RAW phone. The callable masks it into phoneMasked and stores the raw value in staffPhones/{code}."
+        },
+        "vanId": {
+          "type": "string",
+          "required": false
+        },
+        "routeId": {
+          "type": "string",
+          "required": false
+        },
+        "wardIds": {
+          "type": "string[]",
+          "required": false
+        },
+        "active": {
+          "type": "boolean",
+          "required": false
+        }
       },
-      "output": { "code": { "type": "string" }, "phoneMasked": { "type": "string" } },
-      "reasonCodes": ["notAuthorised", "invalidInput", "internal"],
+      "output": {
+        "code": {
+          "type": "string"
+        },
+        "phoneMasked": {
+          "type": "string"
+        }
+      },
+      "reasonCodes": [
+        "notAuthorised",
+        "invalidInput",
+        "internal"
+      ],
       "authority": {
-        "reads": ["staff/{staffId}"],
-        "writes": ["drivers/{code}", "staffPhones/{code}"],
+        "reads": [
+          "staff/{staffId}"
+        ],
+        "writes": [
+          "drivers/{code}",
+          "staffPhones/{code}"
+        ],
         "masking": "The mask is applied at the SOURCE, not by the reader. The driver app's read rule is field-restricted so the raw phone cannot leak through the same doc. A collection-level rule is not enough."
       }
     },
     "upsertStaff": {
       "type": "https.onCall",
-      "status": "NEW. Not implemented.",
-      "calledBy": ["adminpanel"],
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/callables/admin.ts"
+      },
+      "calledBy": [
+        "adminpanel"
+      ],
       "purpose": "Create or update a staff member. Changing active to false revokes them immediately.",
       "input": {
-        "staffId": { "type": "string", "required": true },
-        "name": { "type": "string", "required": true },
-        "role": { "type": "string", "enumRef": "enums.json#/$defs/staff.role", "required": true },
-        "wardIds": { "type": "string[]", "required": true },
-        "talukaId": { "type": "string", "required": false },
-        "phone": { "type": "string", "required": false },
-        "active": { "type": "boolean", "required": true }
+        "staffId": {
+          "type": "string",
+          "required": true
+        },
+        "name": {
+          "type": "string",
+          "required": true
+        },
+        "role": {
+          "type": "string",
+          "enumRef": "enums.json#/$defs/staff.role",
+          "required": true
+        },
+        "wardIds": {
+          "type": "string[]",
+          "required": true
+        },
+        "talukaId": {
+          "type": "string",
+          "required": false
+        },
+        "phone": {
+          "type": "string",
+          "required": false
+        },
+        "active": {
+          "type": "boolean",
+          "required": true
+        }
       },
-      "output": { "staffId": { "type": "string" } },
-      "reasonCodes": ["notAuthorised", "invalidInput", "internal"],
+      "output": {
+        "staffId": {
+          "type": "string"
+        }
+      },
+      "reasonCodes": [
+        "notAuthorised",
+        "invalidInput",
+        "internal"
+      ],
       "authority": {
-        "reads": ["staff/{staffId}"],
-        "writes": ["staff/{staffId}", "staffPhones/{staffId}"],
+        "reads": [
+          "staff/{staffId}"
+        ],
+        "writes": [
+          "staff/{staffId}",
+          "staffPhones/{staffId}"
+        ],
         "revocation": "active = false. The next admin action by that staff member fails at the callable's live check, even if their token is still valid."
       }
     },
     "setVanDepot": {
       "type": "https.onCall",
-      "status": "NEW. Not implemented.",
-      "calledBy": ["adminpanel"],
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/callables/admin.ts"
+      },
+      "calledBy": [
+        "adminpanel"
+      ],
       "purpose": "Set the van's depot tag. The driver never writes this.",
       "input": {
-        "vanId": { "type": "string", "required": true },
-        "lat": { "type": "number", "required": true },
-        "lng": { "type": "number", "required": true }
+        "vanId": {
+          "type": "string",
+          "required": true
+        },
+        "lat": {
+          "type": "number",
+          "required": true
+        },
+        "lng": {
+          "type": "number",
+          "required": true
+        }
       },
-      "output": { "vanId": { "type": "string" } },
-      "reasonCodes": ["notAuthorised", "notFound", "invalidInput", "internal"],
+      "output": {
+        "vanId": {
+          "type": "string"
+        }
+      },
+      "reasonCodes": [
+        "notAuthorised",
+        "notFound",
+        "invalidInput",
+        "internal"
+      ],
       "authority": {
-        "reads": ["staff/{staffId}"],
-        "writes": ["vans/{vanId}"],
+        "reads": [
+          "staff/{staffId}"
+        ],
+        "writes": [
+          "vans/{vanId}"
+        ],
         "note": "This is the depot auto-end tag. The dwell DECISION is currently client-side. The server-side sweep is a separate scheduled Function."
+      }
+    },
+    "citizenVerifyResolution": {
+      "type": "https.onCall",
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/callables/complaints.ts"
+      },
+      "calledBy": [
+        "userapp"
+      ],
+      "purpose": "The citizen confirms or rejects the office's resolution proof.",
+      "input": {
+        "complaintId": {
+          "type": "string",
+          "required": true
+        },
+        "confirmed": {
+          "type": "boolean",
+          "required": true
+        },
+        "proofPhotoUrl": {
+          "type": "string",
+          "required": false
+        },
+        "reason": {
+          "type": "string",
+          "required": false
+        }
+      },
+      "output": {
+        "newStatus": {
+          "type": "string",
+          "enumRef": "enums.json#/$defs/complaint.status"
+        }
+      },
+      "reasonCodes": [
+        "notAuthorised",
+        "notFound",
+        "invalidState",
+        "invalidInput",
+        "internal"
+      ],
+      "authority": {
+        "reads": [
+          "complaints/{complaintId}"
+        ],
+        "writes": [
+          "complaints/{complaintId}"
+        ],
+        "checks": [
+          "The caller is authenticated",
+          "complaints.deviceId equals the deviceId claim. The citizen may only verify their OWN complaint.",
+          "complaints.status is pending_verification. Any other state is invalidState."
+        ],
+        "outcome": "confirmed true sets status = resolved and clears autoResolveDeadline. confirmed false sets status = reopened."
+      }
+    },
+    "reopenComplaint": {
+      "type": "https.onCall",
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/callables/complaints.ts"
+      },
+      "calledBy": [
+        "userapp"
+      ],
+      "purpose": "The citizen reopens a complaint that was closed without the work being done.",
+      "input": {
+        "complaintId": {
+          "type": "string",
+          "required": true
+        },
+        "proofPhotoUrl": {
+          "type": "string",
+          "required": false
+        },
+        "reason": {
+          "type": "string",
+          "required": false
+        }
+      },
+      "output": {
+        "status": {
+          "type": "string",
+          "enumRef": "enums.json#/$defs/complaint.status"
+        }
+      },
+      "reasonCodes": [
+        "notAuthorised",
+        "notFound",
+        "invalidState",
+        "invalidInput",
+        "internal"
+      ],
+      "authority": {
+        "reads": [
+          "complaints/{complaintId}"
+        ],
+        "writes": [
+          "complaints/{complaintId}"
+        ],
+        "checks": [
+          "The caller is authenticated",
+          "complaints.deviceId equals the deviceId claim",
+          "complaints.status is resolved or auto_resolved. Any other state is invalidState."
+        ],
+        "outcome": "status = reopened, escalationLevel resets to 0, autoResolveDeadline is cleared."
+      }
+    },
+    "getWardDutyStatus": {
+      "type": "https.onCall",
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/callables/wardDuty.ts"
+      },
+      "calledBy": [
+        "userapp"
+      ],
+      "purpose": "Tells the citizen whether the van has finished the duty in their ward today.",
+      "input": {
+        "wardId": {
+          "type": "string",
+          "required": true
+        },
+        "date": {
+          "type": "string",
+          "required": false,
+          "note": "Optional YYYY-MM-DD. Defaults to the server's current IST day."
+        }
+      },
+      "output": {
+        "isDutyOver": {
+          "type": "boolean"
+        },
+        "status": {
+          "type": "string",
+          "enumRef": "enums.json#/$defs/wardDuty.status"
+        }
+      },
+      "reasonCodes": [
+        "notFound",
+        "invalidInput",
+        "internal"
+      ],
+      "authority": {
+        "reads": [
+          "wardDuty/{date}_{wardId}"
+        ],
+        "writes": [],
+        "whyACallable": "The doc id is {IST date}_{wardId}. The IST day boundary is a business rule. The client must not compute it, because a phone in the wrong timezone would read yesterday's duty."
+      }
+    },
+    "markWardDutyCompleted": {
+      "type": "https.onCall",
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/callables/wardDuty.ts"
+      },
+      "calledBy": [
+        "adminpanel"
+      ],
+      "purpose": "The office marks a ward's duty as finished when the van could not serve it, or when the duty was done off-system.",
+      "input": {
+        "wardId": {
+          "type": "string",
+          "required": true
+        },
+        "vanId": {
+          "type": "string",
+          "required": false
+        },
+        "routeId": {
+          "type": "string",
+          "required": false
+        }
+      },
+      "output": {
+        "wardId": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enumRef": "enums.json#/$defs/wardDuty.status"
+        },
+        "isDutyOver": {
+          "type": "boolean"
+        }
+      },
+      "reasonCodes": [
+        "notAuthorised",
+        "notFound",
+        "invalidState",
+        "invalidInput",
+        "internal"
+      ],
+      "authority": {
+        "reads": [
+          "staff/{staffId}",
+          "wardDuty/{date}_{wardId}"
+        ],
+        "writes": [
+          "wardDuty/{date}_{wardId}"
+        ],
+        "checks": [
+          "The caller is authenticated",
+          "staff/{staffId}.active is true",
+          "The wardId is in the live staff wardIds scope"
+        ],
+        "securityNote": "The CITIZEN app used to write wardDuty directly and could mark any ward's duty as over. That write is removed. Only the driver app and this callable write wardDuty. CHG-0011."
+      }
+    }
+  },
+  "x-server-functions": {
+    "arrivalAlert": {
+      "type": "firestore.onWrite",
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/triggers/arrivalAlert.ts"
+      },
+      "calledBy": [],
+      "purpose": "Alerts the citizens of a ward when the van is near that ward. The core loop of the whole product.",
+      "trigger": {
+        "document": "vans/{vanId}",
+        "event": "write"
+      },
+      "input": {
+        "vanId": {
+          "type": "string",
+          "note": "From the event context."
+        }
+      },
+      "output": {
+        "note": "None. It writes and sends a push."
+      },
+      "reasonCodes": [],
+      "authority": {
+        "reads": [
+          "vans/{vanId}",
+          "trips/{currentTripId}",
+          "routes/{routeId}",
+          "wards/{wardId}"
+        ],
+        "writes": [
+          "trips/{currentTripId}"
+        ],
+        "sideEffect": "Sends an FCM push to topic ward_{wardId}. Adds the ward to trips.alertedWardIds so the alert fires once.",
+        "geometry": "distance(van.lastLocation, ward.center) <= ward.radiusM + ARRIVAL_ALERT_RADIUS_M. The distance is to the ward BOUNDARY, not the centre.",
+        "freshness": "The location must be newer than STALE_LOCATION_SEC. A stale ping never alerts.",
+        "claimMode": "The alerted ward must not already be in trips.alertedWardIds."
+      }
+    },
+    "mergeDuplicates": {
+      "type": "firestore.onWrite",
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/triggers/mergeDuplicates.ts"
+      },
+      "calledBy": [],
+      "purpose": "Merges two complaints that are the same problem reported twice.",
+      "trigger": {
+        "document": "complaints/{complaintId}",
+        "event": "write"
+      },
+      "input": {
+        "complaintId": {
+          "type": "string",
+          "note": "From the event context."
+        }
+      },
+      "output": {
+        "note": "None. It writes the mergedInto pointer."
+      },
+      "reasonCodes": [],
+      "authority": {
+        "reads": [
+          "complaints/{complaintId}",
+          "complaints/*"
+        ],
+        "writes": [
+          "complaints/{complaintId}",
+          "complaints/{originalComplaintId}"
+        ],
+        "geometry": "Two complaints in the same ward closer than DUPLICATE_RADIUS_M.",
+        "keepRule": "The OLDER complaint survives. The NEW one gets mergedInto = the older id. The ticket id the citizen sees stays valid."
+      }
+    },
+    "missedCollectionAlert": {
+      "type": "firestore.onWrite",
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/scheduled/missedCollectionAlert.ts"
+      },
+      "calledBy": [],
+      "purpose": "Alerts the inspector when a ward has too many missed-collection reports.",
+      "trigger": {
+        "document": "complaints/{complaintId}",
+        "event": "write"
+      },
+      "input": {
+        "wardId": {
+          "type": "string"
+        }
+      },
+      "output": {
+        "note": "None. It sends a push."
+      },
+      "reasonCodes": [],
+      "authority": {
+        "reads": [
+          "complaints/*",
+          "wards/{wardId}",
+          "staff/*"
+        ],
+        "writes": [],
+        "sideEffect": "Sends an FCM push to topic staff_{staffId} for each inspector of that ward.",
+        "threshold": "MISSED_REPORT_THRESHOLD reports of category missed_collection in one ward on one IST day."
+      }
+    },
+    "escalateComplaints": {
+      "type": "pubsub.schedule",
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/scheduled/escalateComplaints.ts"
+      },
+      "calledBy": [],
+      "purpose": "Moves a complaint up the chain when nobody has acted on it.",
+      "trigger": {
+        "schedule": "every 30 minutes"
+      },
+      "input": {
+        "note": "None. It scans the open complaints."
+      },
+      "output": {
+        "note": "None. It writes."
+      },
+      "reasonCodes": [],
+      "authority": {
+        "reads": [
+          "complaints/*",
+          "wards/{wardId}",
+          "staff/*"
+        ],
+        "writes": [
+          "complaints/{complaintId}"
+        ],
+        "clock": "ESCALATION_L1_HOURS after createdAt gives level 1. ESCALATION_L2_HOURS gives level 2. The clock is the SERVER's, not the client's.",
+        "never": "It never touches a complaint whose status is resolved, auto_resolved or reopened."
+      }
+    },
+    "autoResolvePendingComplaints": {
+      "type": "pubsub.schedule",
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/scheduled/autoResolvePendingComplaints.ts"
+      },
+      "calledBy": [],
+      "purpose": "Closes a complaint the office resolved but the citizen never confirmed.",
+      "trigger": {
+        "schedule": "every hour"
+      },
+      "input": {
+        "note": "None. It scans the complaints awaiting verification."
+      },
+      "output": {
+        "note": "None. It writes."
+      },
+      "reasonCodes": [],
+      "authority": {
+        "reads": [
+          "complaints/*"
+        ],
+        "writes": [
+          "complaints/{complaintId}"
+        ],
+        "clock": "A complaint whose status is pending_verification and whose autoResolveDeadline has passed becomes auto_resolved.",
+        "safety": "The citizen may still reopen it. auto_resolved is not final, it is just the office's word when the citizen went quiet."
+      }
+    },
+    "vanOfflineWatch": {
+      "type": "pubsub.schedule",
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/scheduled/vanOfflineWatch.ts"
+      },
+      "calledBy": [],
+      "purpose": "Marks a van offline when it stops reporting.",
+      "trigger": {
+        "schedule": "every 5 minutes"
+      },
+      "input": {
+        "note": "None. It scans the vans."
+      },
+      "output": {
+        "note": "None. It writes."
+      },
+      "reasonCodes": [],
+      "authority": {
+        "reads": [
+          "vans/*"
+        ],
+        "writes": [
+          "vans/{vanId}"
+        ],
+        "clock": "A van whose lastLocation.updatedAt is older than OFFLINE_THRESHOLD_MIN minutes, and whose status is on_shift, becomes offline."
+      }
+    },
+    "whatsappWebhook": {
+      "type": "https.onRequest",
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/webhooks/whatsappWebhook.ts"
+      },
+      "calledBy": [
+        "external: Meta WhatsApp Cloud API, Twilio"
+      ],
+      "purpose": "Receives the inbound WhatsApp message and turns it into a complaint.",
+      "trigger": {
+        "http": "POST /whatsappWebhook"
+      },
+      "input": {
+        "body": {
+          "type": "object",
+          "note": "The provider's payload. The provider's signature is verified before anything is written."
+        }
+      },
+      "output": {
+        "http": "200 with the provider's expected acknowledgement body."
+      },
+      "reasonCodes": [],
+      "authority": {
+        "reads": [
+          "wards/*"
+        ],
+        "writes": [
+          "complaints/{complaintId}"
+        ],
+        "securityNote": "The provider signature is verified FIRST. An unverified payload is rejected with 401 and writes nothing. This is the one endpoint on the internet."
       }
     }
   },
   "x-family": {
     "note": "The three session-minting callables are one shape: check the caller, read the authoritative document, mint the token with the claims that document says, return it. The client asks, the server answers.",
-    "minting": ["bindDeviceToVan", "bootstrapUserSession", "mintStaffToken"],
-    "adminWrites": ["setComplaintStatus", "publishNotice", "upsertDriver", "upsertStaff", "setVanDepot"]
+    "minting": [
+      "bindDeviceToVan",
+      "bootstrapUserSession",
+      "mintStaffToken"
+    ],
+    "adminWrites": [
+      "setComplaintStatus",
+      "publishNotice",
+      "upsertDriver",
+      "upsertStaff",
+      "setVanDepot",
+      "markWardDutyCompleted"
+    ],
+    "shiftCalls": [
+      "startShift",
+      "endShift",
+      "markWardDone"
+    ],
+    "citizenWrites": [
+      "citizenVerifyResolution",
+      "reopenComplaint"
+    ],
+    "reads": [
+      "getWardDutyStatus"
+    ],
+    "serverFunctions": [
+      "arrivalAlert",
+      "mergeDuplicates",
+      "missedCollectionAlert",
+      "escalateComplaints",
+      "autoResolvePendingComplaints",
+      "vanOfflineWatch",
+      "whatsappWebhook"
+    ]
   }
 }

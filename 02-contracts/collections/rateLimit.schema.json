@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://safaaisaathi.contracts/collections/rateLimit.schema.json",
+  "title": "Rate Limit Counter",
+  "description": "The server's own counter for an attempt limit. It exists because a callable that guards a secret must not leak whether the secret exists, and a counter stored on the document being guarded would be polluted by the attempts it is counting. This collection is written and read ONLY by the Functions. No app may read it and no app may write it.",
+  "type": "object",
+  "x-docId": "auto",
+  "x-docIdRule": "The document id is the LIMIT KEY, not a hash of it. The key names the thing being limited, for example bind:{driverCode}. The doc id is not a secret.",
+  "x-writes": ["platform functions: only"],
+  "x-reads": ["platform functions: only"],
+  "properties": {
+    "key": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The limit key. The same value as the document id."
+    },
+    "count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "How many attempts are inside the current window."
+    },
+    "windowStartedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "A SERVER timestamp. The start of the current window. When the window is older than the limit's window length, the counter resets to 1."
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "A SERVER timestamp."
+    }
+  },
+  "required": ["key", "count", "windowStartedAt", "updatedAt"]
+}

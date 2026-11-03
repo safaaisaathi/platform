@@ -3,19 +3,23 @@
   "$id": "https://safaaisaathi.contracts/agent-manifest.json",
   "title": "Safai Saathi platform agent manifest",
   "description": "The machine-readable map of this repository. An AI harness reads this first to learn where everything is, who owns what, and which command verifies what. It is generated from the repo layout, so it does not drift.",
-  "contractVersion": "1.0.0",
+  "contractVersion": "2.0.0",
   "root": ".",
   "paths": {
     "version": "VERSION",
     "agents": "AGENTS.md",
+    "context": "00-context",
+    "prds": "01-prds",
     "contracts": "02-contracts",
+    "features": "02-contracts/features",
     "rules": "03-rules",
     "functions": "04-functions",
     "decisions": "05-decisions",
     "changes": "06-changes",
     "guides": "07-guides",
     "tools": "08-tools",
-    "reference": "09-reference"
+    "reference": "09-reference",
+    "handoff": "10-handoff"
   },
   "commands": {
     "validate": {
@@ -48,6 +52,21 @@
       "expect": "impact matrix regenerated",
       "meaning": "Regenerate section 1 of 06-changes/impact-matrix.md from the manifest and the adoption records. The block between the BEGIN GENERATED and END GENERATED markers is replaced. The rest of the file is hand written."
     },
+    "conflicts": {
+      "command": "node 08-tools/check-conflicts.ts <app-repo-path>",
+      "expect": "total conflicts: 0",
+      "meaning": "Scan an app repo for the collections and fields it touches, and compare them against the contract. Reports an unknown collection, an unknown field, a PII field in a shared collection, a direct admin write, a missing claim, a planned-but-not-built callable, and a Firebase project mismatch."
+    },
+    "usage": {
+      "command": "node 08-tools/scan-usage.ts <app-repo-path>",
+      "expect": "usage written",
+      "meaning": "Scan an app repo and write .contract/usage.json. It is the input the conflict checker reads."
+    },
+    "features": {
+      "command": "node 08-tools/check-features.ts",
+      "expect": "features valid",
+      "meaning": "Validate every feature entry against 02-contracts/features/feature.schema.json and check the semantic rules. Every contractRef must resolve and every slice surface must exist on disk."
+    },
     "build": {
       "command": "node 08-tools/build-schemas.ts",
       "expect": "the composed schemas written",
@@ -69,36 +88,51 @@
       "meaning": "Generate the Dart constants file from constants.json."
     },
     "exportTs": {
-      "command": "node 08-tools/export-ts-constants.ts <app-repo-path>",
+      "command": "node 08-tools/export-ts-constants.ts --out <file> <app-repo-path>",
       "expect": "the output path",
-      "meaning": "Generate the TypeScript constants file from constants.json."
+      "meaning": "Generate the TypeScript constants file from constants.json. The --out flag writes to one file instead of a directory."
+    },
+    "functionsBuild": {
+      "command": "cd 04-functions && npm run build",
+      "expect": "tsc exits 0",
+      "meaning": "Compile the Cloud Functions. The deploy script builds first, because main points at lib/index.js and deploying without building uploads the previous build."
+    },
+    "functionsTest": {
+      "command": "cd 04-functions && npm test",
+      "expect": "the pass count",
+      "meaning": "Run the Node test runner over 04-functions/test/."
     }
   },
   "collections": [
-    { "name": "wards", "schema": "02-contracts/collections/ward.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["adminpanel", "platform-owner"], "readBy": ["driverapp", "userapp", "adminpanel", "functions"] },
-    { "name": "routes", "schema": "02-contracts/collections/route.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["adminpanel"], "readBy": ["driverapp", "userapp", "adminpanel", "functions"] },
-    { "name": "vans", "schema": "02-contracts/collections/van.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["driverapp", "functions", "adminpanel"], "readBy": ["driverapp", "userapp", "adminpanel", "functions"] },
-    { "name": "trips", "schema": "02-contracts/collections/trip.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["driverapp", "functions"], "readBy": ["driverapp", "userapp", "adminpanel", "functions"] },
-    { "name": "trail", "schema": "02-contracts/collections/trailChunk.schema.json", "path": "trips/{tripId}/trail/{n}", "rules": "03-rules/firestore.rules", "writtenBy": ["driverapp"], "readBy": ["driverapp", "adminpanel"] },
-    { "name": "complaints", "schema": "02-contracts/collections/complaint.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["userapp", "driverapp", "adminpanel", "functions"], "readBy": ["userapp", "driverapp", "adminpanel", "functions"] },
-    { "name": "notices", "schema": "02-contracts/collections/notice.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["adminpanel"], "readBy": ["driverapp", "userapp", "adminpanel"] },
-    { "name": "receipts", "schema": "02-contracts/collections/noticeReceipt.schema.json", "path": "notices/{noticeId}/receipts/{driverCode}", "rules": "03-rules/firestore.rules", "writtenBy": ["driverapp"], "readBy": ["driverapp"] },
-    { "name": "ratings", "schema": "02-contracts/collections/rating.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["userapp"], "readBy": ["userapp", "adminpanel"] },
-    { "name": "staff", "schema": "02-contracts/collections/staff.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["adminpanel"], "readBy": ["adminpanel", "functions"] },
-    { "name": "staffPhones", "schema": "02-contracts/collections/staffPhone.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["adminpanel"], "readBy": ["adminpanel"] },
-    { "name": "drivers", "schema": "02-contracts/collections/driver.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["adminpanel"], "readBy": ["driverapp", "adminpanel"] },
-    { "name": "vanDevices", "schema": "02-contracts/collections/vanDevice.schema.json", "rules": "03-rules/firestore.rules", "writtenBy": ["functions"], "readBy": ["functions"] },
-    { "name": "deviceTopics", "schema": "02-contracts/collections/deviceTopic.schema.json", "rules": "03-rules/firestore.rules", "status": "optional", "writtenBy": ["client"], "readBy": ["functions"] }
+    { "name": "wards", "schema": "02-contracts/collections/ward.schema.json", "rules": "03-rules/firestore.strict.rules", "writtenBy": ["adminpanel", "platform-owner"], "readBy": ["driverapp", "userapp", "adminpanel", "functions"] },
+    { "name": "routes", "schema": "02-contracts/collections/route.schema.json", "rules": "03-rules/firestore.strict.rules", "writtenBy": ["adminpanel"], "readBy": ["driverapp", "userapp", "adminpanel", "functions"] },
+    { "name": "vans", "schema": "02-contracts/collections/van.schema.json", "rules": "03-rules/firestore.strict.rules", "writtenBy": ["driverapp", "functions", "adminpanel"], "readBy": ["driverapp", "userapp", "adminpanel", "functions"] },
+    { "name": "trips", "schema": "02-contracts/collections/trip.schema.json", "rules": "03-rules/firestore.strict.rules", "writtenBy": ["driverapp", "functions"], "readBy": ["driverapp", "userapp", "adminpanel", "functions"] },
+    { "name": "trail", "schema": "02-contracts/collections/trailChunk.schema.json", "path": "trips/{tripId}/trail/{n}", "rules": "03-rules/firestore.strict.rules", "writtenBy": ["driverapp"], "readBy": ["driverapp", "adminpanel"] },
+    { "name": "complaints", "schema": "02-contracts/collections/complaint.schema.json", "rules": "03-rules/firestore.strict.rules", "writtenBy": ["userapp", "driverapp", "adminpanel", "functions"], "readBy": ["userapp", "driverapp", "adminpanel", "functions"] },
+    { "name": "complaintPhones", "schema": "02-contracts/collections/complaintPhone.schema.json", "rules": "03-rules/firestore.strict.rules", "writtenBy": ["userapp"], "readBy": ["adminpanel"], "note": "The raw complainant phone. District staff only. It is its own collection because a Firestore get returns the whole document and the rules cannot redact a field." },
+    { "name": "notices", "schema": "02-contracts/collections/notice.schema.json", "rules": "03-rules/firestore.strict.rules", "writtenBy": ["adminpanel"], "readBy": ["driverapp", "userapp", "adminpanel"] },
+    { "name": "receipts", "schema": "02-contracts/collections/noticeReceipt.schema.json", "path": "notices/{noticeId}/receipts/{driverCode}", "rules": "03-rules/firestore.strict.rules", "writtenBy": ["driverapp"], "readBy": ["driverapp"] },
+    { "name": "ratings", "schema": "02-contracts/collections/rating.schema.json", "rules": "03-rules/firestore.strict.rules", "writtenBy": ["userapp"], "readBy": ["userapp", "adminpanel"] },
+    { "name": "staff", "schema": "02-contracts/collections/staff.schema.json", "rules": "03-rules/firestore.strict.rules", "writtenBy": ["adminpanel"], "readBy": ["adminpanel", "functions"] },
+    { "name": "staffPhones", "schema": "02-contracts/collections/staffPhone.schema.json", "rules": "03-rules/firestore.strict.rules", "writtenBy": ["adminpanel"], "readBy": ["adminpanel"], "note": "The raw staff phone. District staff only." },
+    { "name": "drivers", "schema": "02-contracts/collections/driver.schema.json", "rules": "03-rules/firestore.strict.rules", "writtenBy": ["adminpanel"], "readBy": ["driverapp", "adminpanel"] },
+    { "name": "wardDuty", "schema": "02-contracts/collections/wardDuty.schema.json", "rules": "03-rules/firestore.strict.rules", "writtenBy": ["functions"], "readBy": ["userapp", "adminpanel", "functions"], "note": "The collection duty board. The SERVER writes it. A client may not. CHG-0011." },
+    { "name": "collectionFeedback", "schema": "02-contracts/collections/collectionFeedback.schema.json", "rules": "03-rules/firestore.strict.rules", "writtenBy": ["userapp"], "readBy": ["userapp"], "note": "Only the user app touches it. The five app-only fields live in the user app's extension." },
+    { "name": "vanDevices", "schema": "02-contracts/collections/vanDevice.schema.json", "rules": "03-rules/firestore.strict.rules", "writtenBy": ["functions"], "readBy": ["functions"] },
+    { "name": "rateLimit", "schema": "02-contracts/collections/rateLimit.schema.json", "rules": "03-rules/firestore.strict.rules", "writtenBy": ["functions"], "readBy": ["functions"] },
+    { "name": "deviceTopics", "schema": "02-contracts/collections/deviceTopic.schema.json", "rules": "03-rules/firestore.strict.rules", "status": "optional", "writtenBy": ["client"], "readBy": ["functions"] }
   ],
-  "enums": { "path": "02-contracts/enums.json" },
-  "constants": { "path": "02-contracts/constants.json" },
-  "claims": { "path": "02-contracts/claims.json" },
-  "topics": { "path": "02-contracts/topics.json" },
-  "callables": { "path": "02-contracts/callables.json" },
-  "errors": { "path": "02-contracts/errors.json" },
+  "enums": { "path": "02-contracts/enums.json", "count": 11 },
+  "constants": { "path": "02-contracts/constants.json", "count": 35 },
+  "claims": { "path": "02-contracts/claims.json", "count": 8 },
+  "topics": { "path": "02-contracts/topics.json", "count": 4 },
+  "callables": { "path": "02-contracts/callables.json", "callables": 15, "serverFunctions": 7, "total": 22 },
+  "errors": { "path": "02-contracts/errors.json", "count": 10 },
   "designTokens": { "path": "02-contracts/design-tokens.json" },
-  "extensions": { "path": "02-contracts/extensions/registry.json" },
+  "extensions": { "path": "02-contracts/extensions/registry.json", "count": 2 },
   "severityPolicy": { "path": "02-contracts/severity-policy.md" },
+  "features": { "path": "02-contracts/features", "schema": "02-contracts/features/feature.schema.json" },
   "apps": {
     "driverapp": {
       "repo": "safaaisaathi/driverapp",
@@ -106,34 +140,67 @@
       "platforms": ["Android"],
       "firebaseAppId": "1:179594621556:android:8bdac1de2d29745aad1721",
       "auth": "anonymous, then a custom token from bindDeviceToVan",
-      "contractPath": ".contract/vendor/02-contracts"
+      "contractPath": ".contract/vendor/02-contracts",
+      "handoff": "10-handoff/PROMPT-driverapp.md",
+      "note": "It had its own copy of the backend in functions/ and a committed functions/.env with the DEMO_SEED_BYPASS flag. Both are deleted by CHG-0006 and CHG-0009."
     },
     "userapp": {
       "repo": "safaaisaathi/userapp",
-      "stack": "Flutter",
-      "platforms": ["Android", "iOS"],
+      "stack": "React 18 + Vite, a PWA, Capacitor for Android. The package is in apps/citizen_app/",
+      "platforms": ["Web", "Android"],
       "firebaseAppId": "TO BE REGISTERED",
       "auth": "anonymous, then a custom token from bootstrapUserSession",
-      "contractPath": ".contract/vendor/02-contracts"
+      "contractPath": ".contract/vendor/02-contracts",
+      "handoff": "10-handoff/PROMPT-userapp.md",
+      "note": "PRD-1 says Flutter. The code is React. The office decides, CHG-0016. The contract does not care which language the app is written in."
     },
     "adminpanel": {
       "repo": "safaaisaathi/adminpanel",
-      "stack": "React / Next.js",
+      "stack": "React 18 + Vite. Not Next.js, despite what its README says.",
       "platforms": ["Web"],
       "firebaseAppId": "TO BE REGISTERED",
       "auth": "email, then a custom token from mintStaffToken",
-      "contractPath": ".contract/vendor/02-contracts"
+      "contractPath": ".contract/vendor/02-contracts",
+      "handoff": "10-handoff/PROMPT-adminpanel.md",
+      "note": "It has 25 screens and zero Firebase calls. Its data layer is localStorage. CHG-0014 is the biggest job in the set."
     }
   },
   "firebase": {
     "projectId": "safaaisaathi-63a87",
     "services": ["firestore", "firestore-rules", "functions", "auth", "fcm", "storage"],
     "emulators": ["auth", "firestore", "functions"],
-    "emulatorPorts": { "auth": 9099, "firestore": 8080, "functions": 5001 },
+    "emulatorPorts": {
+      "phase1": { "auth": 9099, "firestore": 8080, "functions": 5001, "config": "03-rules/firebase.json" },
+      "phase2": { "auth": 9098, "firestore": 8081, "functions": 5001, "config": "03-rules/firebase.strict.json" }
+    },
     "emulatorCaveat": "The Firestore emulator enforces the rules but NOT composite indexes. A green emulator run is not proof of index coverage.",
     "onboardingGuide": "07-guides/firebase-getting-started.md",
     "publishingGuide": "07-guides/publishing-a-contract-change.md",
+    "rulesSwitchGuide": "03-rules/README.md section 5",
     "secretRule": "The harness never handles a secret value, only a secret name. The human types the value in their own terminal. Verify with functions:secrets:get, never functions:secrets:access."
+  },
+  "rules": {
+    "phase1": {
+      "file": "03-rules/firestore.rules",
+      "status": "deployed",
+      "meaning": "The loose rules. The rule is only is somebody signed in. Every app signs in anonymously today, so every app works."
+    },
+    "phase2": {
+      "file": "03-rules/firestore.strict.rules",
+      "status": "not deployed",
+      "meaning": "The claims-based rules. The CHG-0003 target. Every admin write is denied. The raw phone collections are district only."
+    },
+    "switchProcedure": "03-rules/README.md section 5",
+    "rule": "The rules tighten LAST. Deploying the strict rules while an app still signs in anonymously makes every write fail, and the symptom is an empty screen, not an authorisation error."
+  },
+  "handoff": {
+    "readme": "10-handoff/README.md",
+    "prompts": [
+      "10-handoff/PROMPT-driverapp.md",
+      "10-handoff/PROMPT-userapp.md",
+      "10-handoff/PROMPT-adminpanel.md"
+    ],
+    "wiringGuide": "07-guides/wiring-an-app-to-the-contract.md"
   },
   "x-rules": {
     "readBudget": "Do not read 09-reference/ to answer a contract question. Read 02-contracts/.",

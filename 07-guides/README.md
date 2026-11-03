@@ -1,15 +1,16 @@
 ---
 id: guides-readme
 title: The Guides Router
-status: frozen
+status: active
 owner: platform-owner
-updated: 2026-11-01
-contractVersion: "1.0.0"
+updated: 2026-11-03
+contractVersion: "2.0.0"
 audience: harness
 see_also:
   - ../AGENTS.md
   - ../02-contracts/README.md
   - ./making-a-contract-change.md
+  - ../10-handoff/README.md
 ---
 
 # The Guides Router
@@ -59,6 +60,7 @@ On a conflict between a guide and `../02-contracts/`, the contract wins and the 
 | Publish a finished change to the three app repos | `./publishing-a-contract-change.md` | Compose, sync one app, let it adopt, refresh the matrix. One repo per run |
 | Build a new feature that needs new data or a new server action | `./adding-a-new-feature.md` | Open the contract request first. Build after the contract edit lands |
 | Implement a published change inside an app repo | `./adopting-a-change.md` | Update `.contract/adopted.json` as you go. Report with the app block |
+| Wire an app onto the contract for the FIRST time, or take it from anonymous sign-in to a custom token | `./wiring-an-app-to-the-contract.md` | Sync, one project, custom token, callables, delete the backend copy. Then use `./adopting-a-change.md` §4.4 to 4.8 |
 | A security hole is open, or data is being lost | `./emergency-changes.md` | Deploy first, record in the same window. Everything else stops |
 | Give a teammate Firebase access, or react to a leaked key | `./firebase-access-and-keys.md` | Share web config freely. Never share a service account key |
 | Set a teammate up on Firebase from zero, or wire Firebase into an app | `./firebase-getting-started.md` | Install per stack, then run the eight steps in order. The harness asks for secrets, the human types them |
@@ -105,10 +107,10 @@ Expected output: `07-guides/README.md: TABLES=4 MALFORMED=0`. Any `BAD` line is 
 Also verify every guide named in the table exists:
 
 ```bash
-for f in reading-the-contract making-a-contract-change publishing-a-contract-change adding-a-new-feature adopting-a-change emergency-changes firebase-access-and-keys firebase-getting-started backend-split arrival-notification-flow common-ui-patterns using-this-repo; do test -f "07-guides/$f.md" && echo "OK $f" || echo "MISSING $f"; done
+for f in reading-the-contract making-a-contract-change publishing-a-contract-change adding-a-new-feature adopting-a-change wiring-an-app-to-the-contract emergency-changes firebase-access-and-keys firebase-getting-started backend-split arrival-notification-flow common-ui-patterns using-this-repo; do test -f "07-guides/$f.md" && echo "OK $f" || echo "MISSING $f"; done
 ```
 
-Expected: twelve `OK` lines, zero `MISSING` lines.
+Expected: thirteen `OK` lines, zero `MISSING` lines.
 
 ## 7. Report format
 

@@ -1,0 +1,156 @@
+{
+  "id": "admin-dispatch",
+  "title": "The office runs the operation",
+  "status": "designed",
+  "owner": "platform",
+  "updated": "2026-11-03",
+  "journey": "A staff member signs in, the panel reads within their ward scope, they write through a callable, the callable re-reads the live staff doc, and the write happens only if the staff member is still active.",
+  "actors": ["adminpanel", "platform"],
+  "steps": [
+    {
+      "n": 1,
+      "actor": "adminpanel",
+      "action": "A staff member signs in; mintStaffToken reads staff/{staffId} and mints the token with role, staffId and the live wardIds scope.",
+      "via": "callable",
+      "reads": ["staff/{staffId}"],
+      "writes": [],
+      "contractRefs": [
+        "callables.json#mintStaffToken",
+        "staff.schema.json#wardIds",
+        "staff.schema.json#active",
+        "staff.schema.json#role",
+        "constants.json#identity.CLAIM_STAFF_ID",
+        "constants.json#identity.CLAIM_WARD_IDS",
+        "constants.json#identity.CLAIM_ROLE"
+      ],
+      "notes": "The scope comes from the live doc, not a form field; a revoked staff member's token stays valid up to an hour, so every later write re-reads the staff doc."
+    },
+    {
+      "n": 2,
+      "actor": "adminpanel",
+      "action": "The panel reads within the staff member's ward scope: vans, trips and complaints limited to the routes/wards of their staff scope.",
+      "via": "rule",
+      "reads": ["vans/{vanId}", "trips/{tripId}", "complaints/{complaintId}"],
+      "writes": [],
+      "contractRefs": [
+        "van.schema.json#routeId",
+        "complaint.schema.json#wardId",
+        "trip.schema.json#routeId"
+      ],
+      "notes": "Read-only within scope; the admin panel does not read whole collections."
+    },
+    {
+      "n": 3,
+      "actor": "platform",
+      "action": "The office writes through a callable: setComplaintStatus, publishNotice, upsertDriver, upsertStaff, setVanDepot or markWardDutyCompleted.",
+      "via": "callable",
+      "reads": ["staff/{staffId}"],
+      "writes": ["complaints/{complaintId}", "notices/{noticeId}", "drivers/{code}", "staff/{staffId}", "vans/{vanId}", "wardDuty/{date}_{wardId}"],
+      "contractRefs": [
+        "callables.json#setComplaintStatus",
+        "callables.json#publishNotice",
+        "callables.json#upsertDriver",
+        "callables.json#upsertStaff",
+        "callables.json#setVanDepot",
+        "callables.json#markWardDutyCompleted",
+        "enums.json#/$defs/staff.role",
+        "enums.json#/$defs/notice.targetType"
+      ],
+      "notes": "Every admin write goes through a callable because the token's claims are a snapshot and can be up to an hour old."
+    },
+    {
+      "n": 4,
+      "actor": "platform",
+      "action": "The callable re-reads staff/{staffId}.active; if false, the write is rejected with notAuthorised even though the token is still live (instant revocation).",
+      "via": "callable",
+      "reads": ["staff/{staffId}"],
+      "writes": [],
+      "contractRefs": [
+        "callables.json#setComplaintStatus",
+        "staff.schema.json#active"
+      ],
+      "notes": "This is Q5 / ADR-0003: a revoked staff member loses access immediately because the server checks the live doc."
+    }
+  ],
+  "slices": [
+    {
+      "id": "adminpanel.admin-dispatch.office-ops",
+      "app": "adminpanel",
+      "surface": "src/App.tsx",
+      "state": "missing",
+      "dependsOn": [],
+      "contractRefs": [
+        "callables.json#mintStaffToken",
+        "callables.json#setComplaintStatus",
+        "callables.json#publishNotice",
+        "callables.json#upsertDriver",
+        "callables.json#upsertStaff",
+        "callables.json#setVanDepot",
+        "callables.json#markWardDutyCompleted"
+      ],
+      "evidence": "src/App.tsx routes 25 screens (A01_Login through A25_AuditLog, routed pairs A01_Login/A1_Login, A3_LiveMap/A15_LiveMap, A4_Complaints/A17_Complaints); src/services/dataService.ts reads and writes localStorage under prefix safai_v3_; src/services/firebaseConfig.ts exists but no Firebase calls are made.",
+      "blockedBy": "The admin panel has zero Firebase; its data layer is a pure localStorage mock and it calls no callable."
+    },
+    {
+      "id": "platform.admin-dispatch.callables",
+      "app": "platform",
+      "surface": "04-functions/src/callables/admin.ts",
+      "state": "specified",
+      "dependsOn": [],
+      "contractRefs": [
+        "callables.json#mintStaffToken",
+        "callables.json#setComplaintStatus",
+        "callables.json#publishNotice",
+        "callables.json#upsertDriver",
+        "callables.json#upsertStaff",
+        "callables.json#setVanDepot",
+        "callables.json#markWardDutyCompleted",
+        "staff.schema.json#active"
+      ],
+      "evidence": "04-functions/src/callables/admin.ts contains real callable code, but callables.json marks every admin callable lifecycle as planned.",
+      "blockedBy": "No app calls these callables; the admin panel has no Firebase, so mintStaffToken is never invoked and every admin write targets localStorage."
+    }
+  ],
+  "handoffs": [
+    {
+      "from": "platform",
+      "to": "adminpanel",
+      "via": "mintStaffToken",
+      "latency": "live",
+      "notes": "The staff member signs in and the panel receives the token with the ward scope."
+    },
+    {
+      "from": "platform",
+      "to": "adminpanel",
+      "via": "setComplaintStatus",
+      "latency": "live",
+      "notes": "The office write lands in Firestore only after the live staff re-read passes."
+    }
+  ],
+  "contractRefs": {
+    "collections": ["staff", "vans", "trips", "complaints", "notices", "drivers", "wardDuty"],
+    "callables": ["mintStaffToken", "setComplaintStatus", "publishNotice", "upsertDriver", "upsertStaff", "setVanDepot", "markWardDutyCompleted"],
+    "enums": ["staff.role", "notice.targetType"],
+    "constants": [
+      "identity.CLAIM_STAFF_ID",
+      "identity.CLAIM_WARD_IDS",
+      "identity.CLAIM_ROLE"
+    ]
+  },
+  "scenario": {
+    "id": "A2",
+    "name": "Admin dispatch: sign in, read scope, write through callable, revocation",
+    "steps": [
+      "A staff member signs in; mintStaffToken reads staff/{staffId} and mints the token.",
+      "The panel reads vans, trips and complaints within the staff ward scope.",
+      "The office resolves a complaint through setComplaintStatus.",
+      "Revoking staff/{staffId}.active makes the next callable write fail with notAuthorised even with a live token."
+    ],
+    "tiers": ["simulated"]
+  },
+  "openQuestions": [
+    "The admin panel has zero Firebase; every admin-dispatch write targets localStorage. Decide when to wire mintStaffToken and the admin callables.",
+    "The admin panel's routed screens include duplicated pairs (A1_Login/A01_Login, A3_LiveMap/A15_LiveMap, A4_Complaints/A17_Complaints); confirm which of each pair is canonical.",
+    "The user app's stack is React/Vite, not Flutter as the PRD states; the admin panel is React+Vite, not Next.js."
+  ]
+}

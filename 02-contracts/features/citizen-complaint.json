@@ -1,0 +1,195 @@
+{
+  "id": "citizen-complaint",
+  "title": "Report a problem and track it to resolution",
+  "status": "partial",
+  "owner": "platform",
+  "updated": "2026-11-03",
+  "journey": "The citizen captures a photo with location and timestamp at the shutter, the complaint is created with a ticket id, the office sees it live and assigns and resolves it with a proof photo, and the citizen confirms or rejects; a rejection reopens the complaint and silence auto-resolves it on a deadline.",
+  "actors": ["userapp", "adminpanel", "driverapp", "platform"],
+  "steps": [
+    {
+      "n": 1,
+      "actor": "userapp",
+      "action": "The citizen captures a photo through the in-app camera only (no gallery), with lat/lng and a timestamp taken at the shutter, plus a category and optional note.",
+      "via": "rule",
+      "reads": [],
+      "writes": ["complaints/{complaintId}"],
+      "contractRefs": [
+        "complaint.schema.json#photoUrl",
+        "complaint.schema.json#location",
+        "complaint.schema.json#category",
+        "complaint.schema.json#deviceId",
+        "complaint.schema.json#ticketId",
+        "constants.json#identity.CLAIM_DEVICE_ID",
+        "constants.json#complaints.MAX_COMPLAINTS_PER_DEVICE_PER_DAY"
+      ],
+      "notes": "Photo is compressed under 500 KB and uploaded to complaints/{complaintId}/photo.jpg; the doc is created with status = received, escalationLevel = 0, deviceId = auth uid."
+    },
+    {
+      "n": 2,
+      "actor": "userapp",
+      "action": "The complaint is created with a ticket id (PMH-YYYYMMDD-NNNN) and the citizen can watch its status in My Complaints.",
+      "via": "rule",
+      "reads": ["complaints/{complaintId}"],
+      "writes": ["complaints/{complaintId}"],
+      "contractRefs": [
+        "complaint.schema.json#ticketId",
+        "complaint.schema.json#status",
+        "enums.json#/$defs/complaint.status"
+      ],
+      "notes": "listenToTicketUpdates reads the same doc in real time so the citizen sees status changes."
+    },
+    {
+      "n": 3,
+      "actor": "adminpanel",
+      "action": "The office sees the complaint live in the complaints table, assigns it to a staff member, and resolves it with a cleaning proof photo (resolvedPhotoUrl).",
+      "via": "callable",
+      "reads": ["complaints/{complaintId}", "staff/{staffId}"],
+      "writes": ["complaints/{complaintId}"],
+      "contractRefs": [
+        "callables.json#setComplaintStatus",
+        "complaint.schema.json#status",
+        "complaint.schema.json#resolvedPhotoUrl",
+        "complaint.schema.json#assignedTo",
+        "enums.json#/$defs/complaint.status"
+      ],
+      "notes": "setComplaintStatus re-reads the live staff doc (instant revocation) and writes status = resolved with resolvedPhotoUrl and autoResolveDeadline."
+    },
+    {
+      "n": 4,
+      "actor": "userapp",
+      "action": "The citizen verifies the resolution: confirms (complaint stays resolved, deadline cleared) or rejects (status = reopened, complaint goes back to the office).",
+      "via": "callable",
+      "reads": ["complaints/{complaintId}"],
+      "writes": ["complaints/{complaintId}"],
+      "contractRefs": [
+        "callables.json#citizenVerifyResolution",
+        "callables.json#reopenComplaint",
+        "complaint.schema.json#status",
+        "complaint.schema.json#citizenVerifiedStatus",
+        "enums.json#/$defs/complaint.status",
+        "enums.json#/$defs/complaint.verificationOutcome"
+      ],
+      "notes": "Cross-verification loop: confirmed true → resolved; confirmed false → reopened."
+    },
+    {
+      "n": 5,
+      "actor": "platform",
+      "action": "If the citizen never answers, autoResolvePendingComplaints flips pending_verification to auto_resolved once the autoResolveDeadline passes; the citizen may still reopen it.",
+      "via": "server-function",
+      "reads": ["complaints/{complaintId}"],
+      "writes": ["complaints/{complaintId}"],
+      "contractRefs": [
+        "callables.json#autoResolvePendingComplaints",
+        "complaint.schema.json#autoResolveDeadline",
+        "enums.json#/$defs/complaint.status"
+      ],
+      "notes": "Scheduled server function, runs every hour; auto_resolved is not final."
+    },
+    {
+      "n": 6,
+      "actor": "driverapp",
+      "action": "The driver may update the status of missed_collection complaints in its route's wards (Pending Reports: Will Revisit → assigned, Done → resolved with resolvedAt).",
+      "via": "rule",
+      "reads": ["complaints/{complaintId}"],
+      "writes": ["complaints/{complaintId}"],
+      "contractRefs": [
+        "complaint.schema.json#status",
+        "complaint.schema.json#resolvedAt",
+        "enums.json#/$defs/complaint.status"
+      ],
+      "notes": "Direct Firestore write through FirestoreComplaintsRepository, scoped to the driver's route wards; not a callable."
+    }
+  ],
+  "slices": [
+    {
+      "id": "userapp.citizen-complaint.report-and-track",
+      "app": "userapp",
+      "surface": "apps/citizen_app/src/services/firebaseService.ts",
+      "state": "wired",
+      "dependsOn": [],
+      "contractRefs": [
+        "callables.json#citizenVerifyResolution",
+        "callables.json#reopenComplaint",
+        "complaint.schema.json#photoUrl",
+        "enums.json#/$defs/complaint.status"
+      ],
+      "evidence": "apps/citizen_app/src/services/firebaseService.ts syncComplaintToCloud creates the complaints doc with deviceId = auth uid and listenToTicketUpdates reads it in real time; apps/citizen_app/src/components/CrossVerifyModal.tsx and PostCollectionModal.tsx are the confirm/reject UI.",
+      "blockedBy": "The confirm/reject loop writes to localStorage via storageService, not to the citizenVerifyResolution / reopenComplaint callables, so the cross-verification loop is not wired end to end."
+    },
+    {
+      "id": "adminpanel.citizen-complaint.assign-and-resolve",
+      "app": "adminpanel",
+      "surface": "src/screens/A17_Complaints.tsx",
+      "state": "built",
+      "dependsOn": [],
+      "contractRefs": [
+        "callables.json#setComplaintStatus",
+        "complaint.schema.json#status",
+        "enums.json#/$defs/complaint.status"
+      ],
+      "evidence": "src/App.tsx routes complaints to A17_Complaints; src/services/dataService.ts resolveComplaint / assignComplaint write localStorage under prefix safai_v3_.",
+      "blockedBy": "The admin panel has zero Firebase; its data layer is a pure localStorage mock, and it calls no callable."
+    },
+    {
+      "id": "driverapp.citizen-complaint.pending-reports",
+      "app": "driverapp",
+      "surface": "lib/core/repositories/firestore/firestore_complaints_repository.dart",
+      "state": "wired",
+      "dependsOn": [],
+      "contractRefs": [
+        "complaint.schema.json#status",
+        "complaint.schema.json#resolvedAt"
+      ],
+      "evidence": "lib/core/repositories/firestore/firestore_complaints_repository.dart updateStatus writes complaint status and resolvedAt directly to Firestore; watched by watchMissedCollectionComplaints.",
+      "blockedBy": ""
+    }
+  ],
+  "handoffs": [
+    {
+      "from": "userapp",
+      "to": "adminpanel",
+      "via": "complaints/{complaintId}",
+      "latency": "live",
+      "notes": "The citizen creates the complaint; the office sees it in its complaints table."
+    },
+    {
+      "from": "adminpanel",
+      "to": "userapp",
+      "via": "setComplaintStatus",
+      "latency": "live",
+      "notes": "The office resolves with a proof photo; the citizen's app picks up the status change via its live read."
+    },
+    {
+      "from": "userapp",
+      "to": "adminpanel",
+      "via": "citizenVerifyResolution",
+      "latency": "live",
+      "notes": "The citizen confirms or rejects; a rejection reopens the complaint for the office."
+    }
+  ],
+  "contractRefs": {
+    "collections": ["complaints"],
+    "callables": ["setComplaintStatus", "citizenVerifyResolution", "reopenComplaint", "autoResolvePendingComplaints"],
+    "enums": ["complaint.status", "complaint.verificationOutcome"],
+    "constants": ["identity.CLAIM_DEVICE_ID", "complaints.MAX_COMPLAINTS_PER_DEVICE_PER_DAY"]
+  },
+  "scenario": {
+    "id": "C1",
+    "name": "Complaint loop end-to-end (PRD-1 Test C1)",
+    "steps": [
+      "Citizen submits a complaint with photo and location from the user phone.",
+      "The complaint appears in the admin panel complaints table with photo and location within 10 seconds.",
+      "The admin assigns and resolves it with a proof photo.",
+      "The citizen sees the status change and confirms or rejects.",
+      "A rejection reopens the complaint; silence auto-resolves it on the deadline."
+    ],
+    "tiers": ["simulated", "live"]
+  },
+  "openQuestions": [
+    "The user app's stack is React/Vite, not Flutter as the PRD states.",
+    "The user app's firebase project id is hardcoded to safai-saathi-panchmahal while the platform project is safaaisaathi-63a87; confirm which project complaints target.",
+    "The citizen confirm/reject loop writes to localStorage, not to the citizenVerifyResolution / reopenComplaint callables; decide whether to wire the callables or keep local writes.",
+    "CHG-0011: the citizen app must not write wardDuty; the direct wardDuty write in firebaseService.syncWardDutyToCloud is a bug to remove."
+  ]
+}

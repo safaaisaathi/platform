@@ -1,8 +1,28 @@
 rules_version = '2';
-// Safai Sathi driver-app dev rules — small, scoped, and loose ONLY where
-// the driver flows need it during the dev stage. TIGHTENED at the
-// integration/pentest sweep (docs/agents/issue-tracker.md ticket) —
-// expectations tracked there.
+// =====================================================================
+// PHASE 1. The loose rules. This is what is deployed today.
+// =====================================================================
+//
+// The rule here is only "is somebody signed in". That is the ANONYMOUS
+// user. Every app signs in anonymously today, so every app works.
+//
+// This file stays deployed until all three apps have adopted CHG-0003 and
+// are signing in with a CUSTOM TOKEN that carries their claims. The
+// replacement is firestore.strict.rules in this same folder.
+//
+// WHY THE REPLACEMENT IS A SEPARATE FILE AND NOT A REWRITE OF THIS ONE.
+// The rules tighten LAST. If the strict rules were deployed while an app
+// still signed in anonymously, every write would be denied and the failure
+// would look like "the screen is empty", not "you are not authorised".
+// A separate file means the switch is one deploy, on a day when every app
+// is ready, instead of a rule that changes under the apps' feet.
+//
+// The switch procedure is in README.md, section 5.
+// The three identities and their claims are in firestore.strict.rules.
+// The old driver-app dev rules. They were loose only where the driver flows
+// needed it during the dev stage. They are replaced, not tightened in place.
+// See firestore.strict.rules for the claims-based rules and README.md section 5
+// for the switch procedure.
 service cloud.firestore {
   match /databases/{database}/documents {
     // READS: only the seeded public collections, only signed-in app users.

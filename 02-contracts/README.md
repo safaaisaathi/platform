@@ -1,22 +1,23 @@
 ---
 id: contracts-readme
 title: The Contract Layer
-status: frozen
+status: active
 owner: platform-owner
-updated: 2026-11-01
-contractVersion: "1.0.0"
+updated: 2026-11-03
+contractVersion: "2.0.0"
 audience: harness
 see_also:
   - ./collections/README.md
   - ./severity-policy.md
   - ./extensions/README.md
+  - ./features/README.md
   - ../03-rules/README.md
   - ../07-guides/reading-the-contract.md
 ---
 
 # The Contract Layer
 
-**This folder is the machine layer.** It is the only folder an AI harness must read to know the exact shape of the data and the exact vocabulary. Everything here is JSON, except this file and `severity-policy.md`.
+**This folder is the machine layer.** It is the only folder an AI harness must read to know the exact shape of the data and the exact vocabulary. Everything here is JSON, except the README files and `severity-policy.md`.
 
 **If a field name, an enum value, a claim name, a constant, a topic or a reason code is not in this folder, it does not exist.** Do not invent one. Open a contract request instead.
 
@@ -30,11 +31,25 @@ see_also:
 | `constants.json` | Every number that must match everywhere | You need a number, a threshold, a radius, a limit |
 | `claims.json` | Every custom claim, who mints it, who reads it | You are reading or minting a token |
 | `topics.json` | The FCM topic map | You are subscribing to or publishing a push |
-| `callables.json` | Every callable: input, output, reason codes | You are calling a server function |
+| `callables.json` | Every callable: input, output, reason codes, lifecycle | You are calling a server function |
 | `errors.json` | The reason-code vocabulary | You are handling a server error |
 | `design-tokens.json` | The shared visual tokens | You are building a screen |
 | `extensions/registry.json` | Which app owns which extension | You are adding a field only one app uses |
+| `features/*.json` | The cross-app journeys. Which app does what, and what is still missing | You are building a feature that crosses app boundaries |
+| `features/feature.schema.json` | The shape a feature entry must have | You are adding a feature entry |
 | `severity-policy.md` | The S0 to S4 severity rules and the version-bump policy | You are recording a change |
+
+### The three layers
+
+| Layer | What it answers | Where |
+|---|---|---|
+| **The surface** | What the data looks like. The fields, the enums, the callables | This folder |
+| **The feature** | Which app does what part of a journey that crosses app boundaries | `features/` |
+| **The slice** | One app's part of that journey, and whether it is built, wired or verified | One slice inside a feature entry |
+
+**The contract knows the surface. The feature layer knows the journey.** A collection schema says what a complaint is. A feature entry says that a citizen files it, the office resolves it, and the citizen confirms it.
+
+**The `lifecycle` field on a callable.** `planned` means it is specified but not built, and a call to it fails with a not-found error that looks like a network bug. `implemented` means it is built and deployed. **An app may only call a callable whose lifecycle is `implemented`.**
 
 ## 2. The three rules
 

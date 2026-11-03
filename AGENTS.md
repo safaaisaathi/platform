@@ -1,14 +1,15 @@
 ---
 id: platform-agents
 title: Safai Saathi Platform AGENTS
-status: frozen
+status: active
 owner: platform-owner
-updated: 2026-11-01
-contractVersion: "1.0.0"
+updated: 2026-11-03
+contractVersion: "2.0.0"
 audience: harness
 see_also:
   - ../07-guides/README.md
   - ../00-context/agent-manifest.json
+  - ../10-handoff/README.md
 ---
 
 # AGENTS.md
@@ -22,11 +23,12 @@ see_also:
 | # | Source | What it decides | Absolute? |
 |---|---|---|---|
 | 1 | `02-contracts/**` | The field names, enums, constants, claims, topics, callables | **Yes** |
-| 2 | `03-rules/firestore.rules` | Who may read and write what | **Yes** |
+| 2 | `03-rules/**` | Who may read and write what. `firestore.rules` is PHASE 1, `firestore.strict.rules` is PHASE 2 | **Yes** |
 | 3 | `05-decisions/index.md` | Why. Explains, never overrides | No |
 | 4 | `01-prds/**` | What the product should do | No |
-| 5 | `06-changes/**` | What changed, and who must catch up | No |
-| 6 | `09-reference/**` | Background reading. Never a source of truth | No |
+| 5 | `02-contracts/features/**` | Which app does what part of a cross-app journey. **Never overrides the schema** | No |
+| 6 | `06-changes/**` | What changed, and who must catch up | No |
+| 7 | `09-reference/**` | Background reading. Never a source of truth | No |
 
 **If 1 and 4 disagree, 1 wins and you open a change request.** Never "fix" the contract to match a PRD.
 
@@ -35,7 +37,7 @@ see_also:
 | # | Constraint |
 |---|---|
 | 1 | **NEVER** add, rename or remove a field or an enum value without a change request. PRD-2 §0.1 |
-| 2 | **NEVER** change `03-rules/firestore.rules` without a security note in the change entry |
+| 2 | **NEVER** change `03-rules/firestore.rules` or `03-rules/firestore.strict.rules` without a security note in the change entry |
 | 3 | **NEVER** bump `VERSION` in the same commit as an unrelated edit |
 | 4 | **NEVER** edit `06-changes/manifest.json` alone. It and its `CHG-*.md` file change together |
 | 5 | **NEVER** mark a change as adopted on behalf of an app. Adoption is that app's own CI, from its own PR |
@@ -43,6 +45,8 @@ see_also:
 | 7 | **NEVER** merge. A human merges. You draft |
 | 8 | **NEVER** deploy. Deployment is a human action |
 | 9 | **NEVER** put a secret in this repo. A Firebase client API key is not a secret. A service account key is |
+| 10 | **NEVER** edit a file under `02-contracts/collections/.composed/`. It is generated. Run `08-tools/build-schemas.ts` |
+| 11 | **NEVER** tighten the rules while an app still signs in anonymously. The rules tighten LAST. See `03-rules/README.md` §5 |
 
 ## 3. Read budget
 
@@ -52,9 +56,10 @@ see_also:
 |---|---|---|
 | Add a field | `02-contracts/collections/<x>.schema.json`, `02-contracts/enums.json`, `06-changes/templates/contract-request.md` | `09-reference/` |
 | Add an enum value | `02-contracts/enums.json`, the schemas that use it, `02-contracts/severity-policy.md` | `09-reference/` |
-| Change a rule | `03-rules/firestore.rules`, `02-contracts/claims.json`, `05-decisions/index.md` | The PRDs |
+| Change a rule | `03-rules/firestore.rules` or `firestore.strict.rules`, `02-contracts/claims.json`, `05-decisions/index.md` | The PRDs |
 | Change a Function | `02-contracts/callables.json`, `02-contracts/errors.json`, `04-functions/src/` | `09-reference/` |
 | Write a change entry | `06-changes/templates/CHANGE-template.md`, `02-contracts/severity-policy.md` | Everything else |
+| Add or check a feature entry | `02-contracts/features/feature.schema.json`, `08-tools/check-features.ts` | The whole `09-reference/` |
 | Answer a question about the backend | `02-contracts/README.md`, then the one file it points to | The whole `09-reference/` |
 
 ## 4. Modes
@@ -87,9 +92,11 @@ see_also:
 ```bash
 node 08-tools/validate-contract.ts      # every schema is valid, every enum resolves
 node 08-tools/check-consistency.ts       # the schema and the changelog agree
+node 08-tools/check-features.ts          # every feature entry is valid, every ref resolves
+node 08-tools/build-schemas.ts           # the composed schemas build. It also proves no extension redefines a core field
 ```
 
-Both must print their success line. A failure means the contract is broken, and nothing downstream can be trusted.
+All four must print their success line. A failure means the contract is broken, and nothing downstream can be trusted.
 
 **If you edited markdown, run these two as well.**
 
@@ -98,17 +105,31 @@ python3 08-tools/check-tables.py         # every markdown table is well formed
 python3 08-tools/check-links.py          # every relative markdown link resolves
 ```
 
+**If you touched the backend, run these two as well.**
+
+```bash
+cd 04-functions && npx tsc --noEmit      # the strict TypeScript build. Zero errors
+cd 04-functions && npm test               # the Node test runner. Every test passes
+node 08-tools/export-ts-constants.ts . --out 04-functions/src/generated/constants.ts   # the constants file matches constants.json
+git diff --exit-code -- 04-functions/src/generated/constants.ts                         # it did not drift
+```
+
+**`npm test` needs Node 22.6 or newer**, because it uses Node's own type stripping. The deployed runtime is Node 20, which is why `engines.node` stays at 20. The build itself works on Node 20.
+
 ## 7. Report format
 
 **Your final message MUST end with this block. A human reads it to decide whether your work is real.**
 
 ```
 CONTRACT VERSION: <from VERSION, old -> new if changed>
+EXTENSION VERSION: <the extension version, or none>
 FILES READ: <paths>
 FILES CHANGED: <paths>
 SEVERITY: <S0-S4>
 CHANGE ID: <CHG-nnn, or none>
-VALIDATION: validate-contract -> <pass/fail> | check-consistency -> <pass/fail>
+CHANGES ADOPTED: <the ids, or none>
+CHANGES PENDING: <the ids, or none>
+VALIDATION: validate-contract -> <pass/fail> | check-consistency -> <pass/fail> | check-features -> <pass/fail> | build-schemas -> <pass/fail>
 OPEN QUESTION: <one line, or none>
 ```
 

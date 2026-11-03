@@ -1,10 +1,10 @@
 ---
 id: platform-changelog
 title: Platform Changelog
-status: frozen
+status: active
 owner: platform-owner
-updated: 2026-11-02
-contractVersion: "1.0.0"
+updated: 2026-11-03
+contractVersion: "2.0.0"
 audience: both
 see_also:
   - ./VERSION
@@ -29,8 +29,6 @@ see_also:
 
 ### Added
 
-- `EXT-0001`. The driver app owns `trips.id`, registered as an extension with a sha256 hash. The core contract version did not move.
-- `06-changes/EXT-0001-driverapp-trip-id.md`. The explanation, and the known debt on a redundant field.
 - `check-adoption.ts --write`. It regenerates section 1 of the impact matrix from the manifest and the adoption records, between two markers. The matrix is now genuinely generated instead of claiming to be.
 - `07-guides/firebase-getting-started.md`. Firebase from zero, for a teammate who has never used it. The tool install matrix per stack, the eight steps in order, the emulator, the first Firebase code per stack, the secret protocol, and the eight failures a newcomer will hit.
 - `07-guides/publishing-a-contract-change.md`. The handoff between the platform repo and the three app repos. Compose, sync one app, let it adopt, refresh the matrix. One step per repo, and the reverse direction for when an app finds a problem.
@@ -48,7 +46,78 @@ see_also:
 - `using-this-repo.md` has thirteen actions. A13 is the publish pipeline.
 - `06-changes/impact-matrix.md` section 5 now shows the real command, `check-adoption.ts --write`, instead of saying a `--write` flag might be added later. It exists.
 
-## [1.0.0] - 2026-11-01
+## [2.0.0] - 2026-11-03
+
+**The breaking release. The contract now matches real code, and the backend has one home.**
+
+**This is the release the three app teams adopt.** Every S1 change in it blocks an app's release until it is adopted.
+
+### The headline
+
+**The backend was in three repos and nowhere canonical. It is now one repo.**
+
+| What | Before | After |
+|---|---|---|
+| Backend source | `userapp/backend/functions/`, `driverapp/functions/`, and a third copy in the admin panel | **One**, at `04-functions/` |
+| Firestore rules | Three copies, already drifted | **Two phases**, one owner. `firestore.rules` is PHASE 1, `firestore.strict.rules` is PHASE 2 |
+| Callables in the contract | 11, fictional, zero overlap with the code | **22, all built.** 15 callables and 7 server functions |
+| The PIN flow | `verifyDriverPin`, `setDriverPin`, the `vanSecrets` collection, and a `DEMO_SEED_BYPASS` flag | **Gone.** CHG-0006 |
+
+### Added
+
+- `04-functions/src/`. The real backend, split by responsibility: `callables/identity.ts`, `callables/shift.ts`, `callables/admin.ts`, `callables/complaints.ts`, `callables/wardDuty.ts`, `triggers/`, `scheduled/`, `webhooks/`, and the shared `lib/`.
+- `04-functions/src/lib/`. The shared helpers: `firebase.ts` is the only place the Admin SDK is initialised, `reasonCodes.ts` is the failure envelope, `auth.ts` is the claim checks, `phone.ts` is the mask, `time.ts` is the IST clock and the distance.
+- `04-functions/src/generated/constants.ts`. The constants, generated from `constants.json`. Never hand-written.
+- `04-functions/test/`. 44 tests. The pure helpers, the failure envelope, and the contract itself. The contract test proves every callable in `callables.json` is exported and every reason code resolves.
+- `02-contracts/features/`. The feature layer. Five cross-app journeys, each with one slice per app and the real state of that slice. It answers "which app does what part of this journey, and what is still missing".
+- `10-handoff/`. One ready-to-paste harness prompt per app. `PROMPT-driverapp.md`, `PROMPT-userapp.md`, `PROMPT-adminpanel.md`. This is the handoff.
+- `07-guides/wiring-an-app-to-the-contract.md`. The first-time wiring guide. Sync, one project, custom token, callables, delete the backend copy.
+- `03-rules/firestore.strict.rules`. PHASE 2. Claims-based, with every admin write denied and the PII collections district only.
+- `03-rules/firebase.strict.json`. The emulator config for PHASE 2. Different ports, so both phases can run at once.
+- `08-tools/scan-usage.ts`, `08-tools/check-conflicts.ts`, `08-tools/check-features.ts`. The usage scanner, the conflict checker and the feature validator.
+- Four new collections: `wardDuty`, `rateLimit`, `collectionFeedback`, `complaintPhones`.
+- `EXT-0002`. The user app owns the five app-only `collectionFeedback` fields.
+- Ten change entries: CHG-0008 to CHG-0016, and EXT-0002.
+
+### Changed
+
+- The complaint status enum went from four values to seven. `pending_verification`, `auto_resolved` and `reopened` are new. The cross-verification loop needs them.
+- The complaint category enum went from four values to eight. `dead_animal`, `public_toilet`, `construction_debris` and `hazardous_waste` are new.
+- The complaint document carries `id`, `phoneMasked`, `assignedAt`, `escalatedAt`, `escalatedTo`, `autoResolveDeadline`, the `citizenVerified*` fields and the `reopened*` fields.
+- `staff.phone` became `staff.phoneMasked`. The raw one lives in `staffPhones/{staffId}`.
+- `adminResolveComplaint` became `setComplaintStatus`. The `workerId` and `workerName` client parameters are gone, because a client parameter is forgeable.
+- Every callable and server function in `callables.json` now carries a `lifecycle` field. `planned` or `implemented`. An app may only call a callable whose lifecycle is `implemented`.
+- The `phoneMasked` pattern was wrong. It was eight characters with four X. It is ten characters with six X, which is `PHONE_MASK_FORMAT`. A validator using the old pattern would have rejected every real mask.
+- The `offline` reason code is marked `clientDetected`. The server's `ReasonCode` type excludes it, so a server path that tries to send it does not compile.
+- `03-rules/README.md` has the two-phase table and the switch procedure in section 5.
+- `06-changes/impact-matrix.md` has the new rows and a per-app table for all three apps.
+
+### The three P0s
+
+| Change | What | By when |
+|---|---|---|
+| CHG-0008 | One Firebase project. The user app is pointed at `safai-saathi-panchmahal`, which does not exist | 2026-11-09 |
+| CHG-0011 | The server writes the ward duty board. A citizen can currently mark any ward's collection as done | 2026-11-09 |
+| CHG-0012 | No raw phone in a readable document. Every staff member who can read a complaint can currently read the complainant's number | 2026-11-09 |
+
+### Known gaps
+
+**These are recorded, not hidden.**
+
+| # | Gap | Tracked as |
+|---|---|---|
+| 1 | The strict rules are written but not deployed. PHASE 1 is live | CHG-0003, `03-rules/README.md` §5 |
+| 2 | No app has adopted 2.0.0. All three are behind | `06-changes/impact-matrix.md` §1 |
+| 3 | The user app and the admin panel have no `.contract/vendor/` and no fingerprint | The three handoff prompts |
+| 4 | The admin panel has no PRD. The platform points at a file that does not exist | CHG-0015 |
+| 5 | The user app's PRD says Flutter. The code is React | CHG-0016, the office decides |
+| 6 | `vans(routeId,status)` and `complaints(wardId,createdAt)` composite indexes are missing | The app PRDs |
+| 7 | The user app and the admin panel are not registered in the Firebase project | The onboarding checklist |
+| 8 | The functions have unit tests but no emulator test suite | The next contract release |
+
+[Unreleased]: https://github.com/safaaisaathi/platform/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/safaaisaathi/platform/compare/v1.0.0...v2.0.0
+[1.0.0]: https://github.com/safaaisaathi/platform/releases/tag/v1.0.0
 
 **The first publication of the shared contract.**
 

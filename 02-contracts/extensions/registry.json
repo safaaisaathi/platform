@@ -11,7 +11,19 @@
       "extensionVersion": "1",
       "source": "driverapp/.contract/extensions/driverapp.json",
       "hash": "sha256:a56cdec5e05b60a52eaec64502a3b6601fe929a5ea6d6a3299aa1487931ef671",
-      "extends": ["trip"],
+      "extends": [
+        "trip"
+      ],
+      "registeredAt": "2026-11-02"
+    },
+    "userapp": {
+      "app": "userapp",
+      "extensionVersion": "1",
+      "source": "userapp/.contract/extensions/userapp.json",
+      "hash": "sha256:193030b0d688222b27897dbda3a560a003f9efa52c21627d5f370f10175d3a2a",
+      "extends": [
+        "collectionFeedback"
+      ],
       "registeredAt": "2026-11-02"
     }
   }

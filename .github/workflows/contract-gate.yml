@@ -33,7 +33,10 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Node 22.6 or newer. The tools are TypeScript and run on Node's own
+          # type stripping, which landed in 22.6. Node 20 cannot strip types,
+          # so the whole job failed on `bad option: --experimental-strip-types`.
+          node-version: 22
           cache: npm
           cache-dependency-path: 08-tools/package-lock.json
 
@@ -48,6 +51,10 @@ jobs:
       - name: Check the schema and the changelog agree
         working-directory: 08-tools
         run: node --experimental-strip-types check-consistency.ts
+
+      - name: Validate every feature entry
+        working-directory: 08-tools
+        run: node --experimental-strip-types check-features.ts
 
       - name: Build the composed schemas
         working-directory: 08-tools
@@ -90,7 +97,10 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Node 22.6 or newer, because `npm test` runs the Node test runner
+          # over TypeScript and needs Node's type stripping. The deployed
+          # runtime is still Node 20. See 04-functions/package.json engines.
+          node-version: 22
 
       - name: Install
         working-directory: 04-functions
@@ -99,6 +109,10 @@ jobs:
       - name: Build
         working-directory: 04-functions
         run: npm run build
+
+      - name: Test
+        working-directory: 04-functions
+        run: npm test
 
   no-secrets:
     name: check for secrets

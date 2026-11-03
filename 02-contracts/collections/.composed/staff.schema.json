@@ -12,6 +12,7 @@
     "adminpanel: within the live staff scope",
     "platform functions"
   ],
+  "x-no-pii": "This doc holds NO raw phone. The readable copy is phoneMasked. The raw one lives in staffPhones/{staffId}, which only district staff may read. CHG-0012.",
   "required": [
     "name",
     "role",
@@ -47,9 +48,10 @@
     "talukaId": {
       "type": "string"
     },
-    "phone": {
+    "phoneMasked": {
       "type": "string",
-      "description": "The raw phone. The admin panel reads it. It is NOT exposed to the driver app or the user app."
+      "pattern": "^[0-9]{2}X{6}[0-9]{2}$",
+      "description": "The MASKED phone, shape PHONE_MASK_FORMAT, 98XXXXXX10. Ten characters, six of them X. The raw phone lives in staffPhones/{staffId}. A Firestore get returns the whole document and the rules cannot redact a field, so a raw phone on this doc would reach every staff member who can read it."
     },
     "active": {
       "type": "boolean",

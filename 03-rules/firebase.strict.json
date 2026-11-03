@@ -1,0 +1,30 @@
+{
+  "_comment": "The emulator config for the STRICT, claims-based rules. Use this one to test the CHG-0003 target locally, on a machine where the apps already sign in with custom tokens. The sibling firebase.json runs the loose PHASE 1 rules that are deployed today. Two configs, two ports, so both can run at the same time.",
+  "emulators": {
+    "auth": {
+      "port": 9098,
+      "host": "0.0.0.0"
+    },
+    "firestore": {
+      "port": 8081,
+      "host": "0.0.0.0"
+    },
+    "functions": {
+      "port": 5001
+    },
+    "ui": {
+      "enabled": false
+    }
+  },
+  "firestore": {
+    "rules": "firestore.strict.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "functions": {
+    "source": "../04-functions"
+  },
+  "singleProjectMode": false
+}

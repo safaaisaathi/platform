@@ -17,12 +17,12 @@
     "complaint.category": {
       "usedBy": ["complaints"],
       "owner": "platform",
-      "meaning": "What the citizen is reporting."
+      "meaning": "What the citizen is reporting. The first four values are the original set. The last four were added when the user app shipped a wider category picker. CHG-0010."
     },
     "complaint.status": {
       "usedBy": ["complaints"],
       "owner": "platform",
-      "meaning": "The complaint's lifecycle state. Every app must agree on the meaning of each value."
+      "meaning": "The complaint's lifecycle state. Every app must agree on the meaning of each value. The first four are the original set. pending_verification, auto_resolved and reopened are the cross-verification loop. CHG-0010."
     },
     "complaint.escalationLevel": {
       "usedBy": ["complaints"],
@@ -48,6 +48,16 @@
       "usedBy": ["callable responses"],
       "owner": "platform",
       "meaning": "Why a shift could not start. The server sends the code. The app owns the words. Q2."
+    },
+    "wardDuty.status": {
+      "usedBy": ["wardDuty"],
+      "owner": "platform",
+      "meaning": "Whether the van's duty in that ward is finished for the day. in_progress means the van has not served the ward yet. completed means it has."
+    },
+    "complaint.verificationOutcome": {
+      "usedBy": ["complaints"],
+      "owner": "platform",
+      "meaning": "What the citizen said when the office asked them to confirm the resolution. confirmed accepts it. rejected reopens the complaint."
     }
   },
   "$defs": {
@@ -64,12 +74,29 @@
     "complaint.category": {
       "type": "string",
       "title": "Complaint category",
-      "enum": ["garbage_dump", "open_gutter", "missed_collection", "other"]
+      "enum": [
+        "garbage_dump",
+        "open_gutter",
+        "missed_collection",
+        "other",
+        "dead_animal",
+        "public_toilet",
+        "construction_debris",
+        "hazardous_waste"
+      ]
     },
     "complaint.status": {
       "type": "string",
       "title": "Complaint status",
-      "enum": ["received", "assigned", "resolved", "escalated"]
+      "enum": [
+        "received",
+        "assigned",
+        "resolved",
+        "escalated",
+        "pending_verification",
+        "auto_resolved",
+        "reopened"
+      ]
     },
     "complaint.escalationLevel": {
       "type": "integer",
@@ -95,6 +122,16 @@
       "type": "string",
       "title": "Shift conflict reason",
       "enum": ["vanHeldByAnotherDriver", "vanAlreadyClaimed", "staleMarker"]
+    },
+    "wardDuty.status": {
+      "type": "string",
+      "title": "Ward duty status",
+      "enum": ["in_progress", "completed"]
+    },
+    "complaint.verificationOutcome": {
+      "type": "string",
+      "title": "Citizen verification outcome",
+      "enum": ["confirmed", "rejected"]
     }
   }
 }

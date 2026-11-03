@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Validation, consistency, adoption, sync and export tooling for the Safai Saathi shared contract.",
   "engines": {
-    "node": ">=20"
+    "node": ">=22.6"
   },
   "scripts": {
     "validate": "node --experimental-strip-types validate-contract.ts",

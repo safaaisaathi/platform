@@ -1,0 +1,396 @@
+rules_version = '2';
+
+// =====================================================================
+// PHASE 2. The claims-based rules. This is the CHG-0003 target.
+// =====================================================================
+//
+// DO NOT DEPLOY THIS FILE YET.
+//
+// The rule that decides when you may swap it in is in README.md, section 5.
+// The short version: every one of the three apps must be signed in with a
+// CUSTOM TOKEN that carries its claims, and that fact must be true in
+// production, before this file touches the live project.
+//
+// Why the file exists separately: the rules tighten LAST. A Firestore rule
+// that denies what a client still does makes the screen look empty, and an
+// empty screen reads as "the feature is broken" when the truth is "the
+// client has not adopted the claims yet". See 06-changes/CHG-0003.
+//
+// WHAT CHANGED FROM PHASE 1
+//   Phase 1 asked "is somebody signed in". That is the anonymous user.
+//   Phase 2 asks "which van, which route, which staff, which device".
+//   A phone that signs in anonymously now gets NOTHING.
+//
+// THE ONE IDEA
+//   A claim is a SNAPSHOT. It can be up to an hour old.
+//   So a rule may use a claim to answer "may this caller touch this
+//   document" and never to answer "is this still true right now".
+//   Every decision that needs the CURRENT truth is a callable, in
+//   04-functions/, not a rule.
+//
+// THE THREE IDENTITIES
+//   driver   claims: vanId, driverId, currentTripId
+//   citizen  claims: deviceId, routeId
+//   staff    claims: staffId, role, wardIds
+//
+// THE STAFF SCOPE
+//   The wardIds CLAIM is a snapshot of the LIVE staff doc. That is why
+//   every admin WRITE goes through a callable that re-reads the live doc.
+//   A rule can stop a revoked staff member from READING a new ward, but
+//   only the server can stop them from WRITING. ADR-0003.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -----------------------------------------------------------------
+    // The helpers
+    // -----------------------------------------------------------------
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function hasClaim(name) {
+      return signedIn() && request.auth.token[name] != null;
+    }
+
+    function claim(name) {
+      return request.auth.token[name];
+    }
+
+    function isDriver() {
+      return hasClaim('vanId') && hasClaim('driverId');
+    }
+
+    function isCitizen() {
+      return hasClaim('deviceId');
+    }
+
+    function isCitizenWithRoute() {
+      return isCitizen() && hasClaim('routeId');
+    }
+
+    function isStaff() {
+      return hasClaim('staffId') && hasClaim('role');
+    }
+
+    // The DDO is the district and the TDO is the taluka. They act
+    // everywhere. Everyone else acts inside their wards.
+    function isDistrict() {
+      return isStaff() && claim('role') in ['ddo', 'tdo'];
+    }
+
+    function staffWardIds() {
+      return hasClaim('wardIds') ? claim('wardIds') : [];
+    }
+
+    function inStaffScope(wardId) {
+      return isDistrict() || (isStaff() && wardId in staffWardIds());
+    }
+
+    function isOwnDriver(driverCode) {
+      return isDriver() && claim('driverId') == driverCode;
+    }
+
+    function isOwnCitizen(deviceId) {
+      return isCitizen() && claim('deviceId') == deviceId;
+    }
+
+    function isOwnTrip(tripId) {
+      return isDriver() && hasClaim('currentTripId') && claim('currentTripId') == tripId;
+    }
+
+    // The wards the driver is serving right now. The trip's wardIds
+    // snapshot, not the live route. A mid-shift change to the driver's
+    // allotment must not rewrite today's record.
+    function currentTripWards() {
+      return get(/databases/$(database)/documents/trips/$(claim('currentTripId'))).data.wardIds;
+    }
+
+    function driverCovers(wardId) {
+      return isDriver()
+        && hasClaim('currentTripId')
+        && wardId in currentTripWards();
+    }
+
+    // -----------------------------------------------------------------
+    // Reference data. Everyone signed in reads these. The office writes
+    // them, and only the district office writes them.
+    // -----------------------------------------------------------------
+
+    match /wards/{wardId} {
+      allow read: if signedIn();
+      allow write: if isDistrict();
+    }
+
+    match /routes/{routeId} {
+      allow read: if signedIn();
+      allow write: if isDistrict();
+    }
+
+    // -----------------------------------------------------------------
+    // The van. The citizen sees only the vans on their own route.
+    // -----------------------------------------------------------------
+
+    match /vans/{vanId} {
+      // The citizen's query MUST filter on routeId, or this denies the
+      // whole query. That is the point. The client cannot read every van
+      // and then decide which ones to show.
+      allow get, list: if isStaff()
+        || isDriver()
+        || (isCitizenWithRoute() && resource.data.routeId == claim('routeId'));
+
+      // The driver writes telemetry on its OWN van and nothing else.
+      // currentTripId is NOT in this list. The shift markers belong to the
+      // server, because two phones on one van would race for them.
+      allow update: if isDriver()
+        && claim('vanId') == vanId
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['lastLocation', 'status', 'batteryPct']);
+
+      // The office sets the depot, the plate and the route through
+      // callables, and the office creates vans from the seed script.
+      allow create, delete: if false;
+    }
+
+    // -----------------------------------------------------------------
+    // The trip. The server owns it. The trail is the one exception.
+    // -----------------------------------------------------------------
+
+    match /trips/{tripId} {
+      allow get: if isStaff()
+        || (isDriver() && resource.data.vanId == claim('vanId'))
+        || (isCitizenWithRoute() && resource.data.routeId == claim('routeId'));
+
+      allow list: if isStaff()
+        || (isDriver() && resource.data.vanId == claim('vanId'))
+        || (isCitizenWithRoute() && resource.data.routeId == claim('routeId'));
+
+      // startShift, endShift and markWardDone are callables. A direct
+      // client write here would let two phones create two trips for one
+      // shift, and one of them would be orphaned.
+      allow create, update, delete: if false;
+
+      // THE ONE DELIBERATE EXCEPTION.
+      // The trail is a direct client write because chunking exists to
+      // reduce the number of writes, and a Function per write adds a
+      // network hop. The rule protects it fully: the parent trip must be
+      // the caller's current trip, only three keys are allowed, and the
+      // chunk is capped.
+      match /trail/{chunkIndex} {
+        allow create: if isOwnTrip(tripId)
+          && request.resource.data.keys().hasOnly(['points', 'from', 'to'])
+          && request.resource.data.points.size() <= 1000;
+
+        allow read: if isStaff() || isDriver();
+
+        allow update, delete: if false;
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // The complaint. The busiest collection.
+    // -----------------------------------------------------------------
+
+    match /complaints/{complaintId} {
+      // The citizen reads their own. The driver reads the wards in the
+      // current trip. The office reads its scope.
+      allow get: if isStaff()
+        || isOwnCitizen(resource.data.deviceId)
+        || driverCovers(resource.data.wardId);
+
+      allow list: if isStaff()
+        || (isCitizen() && resource.data.deviceId == claim('deviceId'))
+        || driverCovers(resource.data.wardId);
+
+      // The citizen creates their own complaint, and only the fields the
+      // citizen is allowed to set. The key list is the whole point: it
+      // stops a citizen from creating a complaint that arrives already
+      // assigned, already escalated, or carrying a phone number.
+      allow create: if isCitizen()
+        && request.resource.data.deviceId == claim('deviceId')
+        && request.resource.data.keys().hasOnly([
+             'id',
+             'ticketId',
+             'deviceId',
+             'category',
+             'photoUrl',
+             'phoneMasked',
+             'location',
+             'wardId',
+             'createdAt',
+             'status',
+             'escalationLevel'
+           ])
+        && request.resource.data.status == 'received'
+        && request.resource.data.escalationLevel == 0
+        && request.resource.data.createdAt == request.time;
+
+      // The driver's D4 scope. Two fields, two values, one ward scope.
+      // Everything else about a complaint is the server's or the
+      // office's.
+      allow update: if driverCovers(resource.data.wardId)
+        && request.resource.data.diff(resource.data).affectedKeys()
+             .hasOnly(['status', 'resolvedAt'])
+        && request.resource.data.status in ['assigned', 'resolved'];
+
+      // The citizen's verification and reopen go through callables, so
+      // the server owns those transitions. The office's writes go
+      // through callables too, because a revoked staff member's token
+      // stays valid for up to an hour. So the driver's D4 pair above is
+      // the ONLY client update to a complaint.
+
+      allow delete: if false;
+    }
+
+    // -----------------------------------------------------------------
+    // The notice. Written by publishNotice, read by everyone.
+    // -----------------------------------------------------------------
+
+    match /notices/{noticeId} {
+      allow read: if signedIn();
+      allow write: if false;
+
+      // A driver's read receipt. A targetType of 'all' notice is read by
+      // every driver, so an array on the notice doc would grow without
+      // bound. The receipt is one small doc per driver.
+      match /receipts/{driverCode} {
+        allow create, update: if isOwnDriver(driverCode)
+          && request.resource.data.keys().hasOnly(['readAt']);
+
+        allow read: if isOwnDriver(driverCode);
+
+        allow delete: if false;
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // The rating. One per ward per day per device.
+    // -----------------------------------------------------------------
+
+    match /ratings/{ratingId} {
+      allow get, list: if isStaff()
+        || (isCitizen() && resource.data.deviceId == claim('deviceId'));
+
+      // CREATE, not update. A device that knows another device's
+      // document id must not be able to overwrite that device's rating.
+      allow create: if isCitizen()
+        && request.resource.data.deviceId == claim('deviceId');
+
+      allow update, delete: if false;
+    }
+
+    // -----------------------------------------------------------------
+    // The raw phone of a complainant. The PII collection.
+    // -----------------------------------------------------------------
+    //
+    // Same rule as staffPhones. The complaint document keeps a masked
+    // copy for the inspector's reference. Only the district reads the
+    // raw number.
+
+    match /complaintPhones/{complaintId} {
+      // The district reads the raw number.
+      allow get, list: if isDistrict();
+
+      // The citizen writes their own, once, when they file the complaint.
+      // CREATE only, so a complaint's phone cannot be replaced later.
+      allow create: if isCitizen()
+        && request.resource.data.complaintId == complaintId
+        && request.resource.data.keys().hasOnly(['complaintId', 'phone', 'updatedAt']);
+
+      allow update, delete: if false;
+    }
+
+    // -----------------------------------------------------------------
+    // The staff directory. Read by the panel, written by upsertStaff.
+    // -----------------------------------------------------------------
+
+    match /staff/{staffId} {
+      allow get, list: if isStaff();
+
+      allow write: if false;
+    }
+
+    // -----------------------------------------------------------------
+    // The raw phone. The PII collection.
+    // -----------------------------------------------------------------
+    //
+    // Only the district reads a raw number. An inspector sees phoneMasked
+    // on the person they are looking at. ADR-0005 is the masked-phone
+    // decision and this is the exception it names.
+
+    match /staffPhones/{personId} {
+      allow get, list: if isDistrict();
+
+      allow write: if false;
+    }
+
+    // -----------------------------------------------------------------
+    // The driver record. The driver reads its OWN, and the raw phone is
+    // not on this document, so a collection-level scope is enough here.
+    // -----------------------------------------------------------------
+
+    match /drivers/{driverCode} {
+      allow get: if isOwnDriver(driverCode);
+      allow list: if isStaff();
+
+      allow write: if false;
+    }
+
+    // -----------------------------------------------------------------
+    // The device to van binding. The server owns it, inside a
+    // transaction. No client may read it or write it.
+    // -----------------------------------------------------------------
+
+    match /vanDevices/{vanId} {
+      allow read, write: if false;
+    }
+
+    // -----------------------------------------------------------------
+    // The rate limit counter. The server owns it.
+    // -----------------------------------------------------------------
+
+    match /rateLimits/{key} {
+      allow read, write: if false;
+    }
+
+    // -----------------------------------------------------------------
+    // The push topic registry. The client owns its own row.
+    // -----------------------------------------------------------------
+
+    match /deviceTopics/{uid} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    // -----------------------------------------------------------------
+    // The ward duty board. The citizen reads it through the
+    // getWardDutyStatus callable, because the document id carries the
+    // IST day and a citizen must not be able to enumerate other wards.
+    // -----------------------------------------------------------------
+
+    match /wardDuty/{dutyId} {
+      allow read: if isStaff();
+
+      // Only the server and markWardDutyCompleted write this. The
+      // citizen app used to write it directly, which let a citizen mark
+      // any ward's duty as over. CHG-0011.
+      allow write: if false;
+    }
+
+    // -----------------------------------------------------------------
+    // The citizen's collection feedback. This collection belongs to the
+    // USER APP's extension, EXT-0002. The platform owns the rule, the
+    // user app owns the shape.
+    // -----------------------------------------------------------------
+
+    match /collectionFeedback/{feedbackId} {
+      allow get, list: if isCitizen()
+        && resource.data.deviceId == claim('deviceId');
+
+      allow create: if isCitizen()
+        && request.resource.data.deviceId == claim('deviceId');
+
+      allow update, delete: if false;
+    }
+  }
+}

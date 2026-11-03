@@ -65,10 +65,27 @@
       "retryable": true,
       "retryAfterSec": 600
     },
+    "invalidState": {
+      "severity": "conflict",
+      "sentBy": [
+        "startShift",
+        "endShift",
+        "markWardDone",
+        "setComplaintStatus",
+        "citizenVerifyResolution",
+        "reopenComplaint",
+        "markWardDutyCompleted"
+      ],
+      "meaning": "The document is not in a state where this action makes sense. The complaint is already resolved. The trip is not open. The ward is already done. It is a state conflict, not a failure.",
+      "appCopyKey": "errorInvalidState",
+      "appPhase": "stateConflict",
+      "retryable": false
+    },
     "offline": {
       "severity": "client",
-      "sentBy": ["all callables"],
-      "meaning": "The device has no network. The client buffers the action and retries it. The server never sees this code; the client detects it locally.",
+      "sentBy": [],
+      "clientDetected": true,
+      "meaning": "The device has no network. The client buffers the action and retries it. The server never sees this code; the client detects it locally. It lives in this file so the client has ONE mapping table, not two. The server's ReasonCode type deliberately excludes it.",
       "appCopyKey": "errorOffline",
       "appPhase": "offline",
       "retryable": true

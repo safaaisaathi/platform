@@ -10,7 +10,7 @@ canonical_repo: safaaisaathi/driverapp
 canonical_path: docs/PRD-2-driver-app.md
 canonical_url: https://github.com/safaaisaathi/driverapp/blob/main/docs/PRD-2-driver-app.md
 pin: v1.4.0
-sourceHash: sha256:pending
+sourceHash: sha256:0042f9fa576aa4508b5687b5d461618dbfb6e96b1f2debde10471cc3960b19ba
 
 contractRefs:
   collections: [wards, routes, vans, trips, trailChunk, complaints, notices, noticeReceipt, drivers]

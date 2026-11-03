@@ -24,8 +24,8 @@
     },
     "phoneMasked": {
       "type": "string",
-      "pattern": "^[0-9]{2}X{4}[0-9]{2}$",
-      "description": "The MASKED phone. The mask is applied at the source by upsertDriver, not by the reader. The raw phone lives in staffPhones/{code}."
+      "pattern": "^[0-9]{2}X{6}[0-9]{2}$",
+      "description": "The MASKED phone. The mask is applied at the source by upsertDriver, not by the reader. The raw phone lives in staffPhones/{code}. The shape is PHONE_MASK_FORMAT, 98XXXXXX10. Ten characters, six of them X."
     },
     "vanId": {
       "type": "string",

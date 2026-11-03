@@ -1,0 +1,145 @@
+{
+  "id": "shift-operations",
+  "title": "Start a shift, collect the wards, end the shift",
+  "status": "partial",
+  "owner": "platform",
+  "updated": "2026-11-03",
+  "journey": "The driver binds the phone to a van, starts the shift (trip snapshot taken), marks each ward collected, and ends the shift; the trip record is the evidence the office later reads.",
+  "actors": ["driverapp", "platform"],
+  "steps": [
+    {
+      "n": 1,
+      "actor": "driverapp",
+      "action": "The driver enters the driver code (AB-1234), the app reads drivers/{CODE} and shows the confirm card (driver name, allotted van, ward count, masked phone); the code is remembered on-device for returning drivers.",
+      "via": "rule",
+      "reads": ["drivers/{driverCode}"],
+      "writes": [],
+      "contractRefs": [
+        "driver.schema.json#vanId",
+        "driver.schema.json#wardIds",
+        "driver.schema.json#phoneMasked",
+        "constants.json#identity.DRIVER_CODE_PATTERN",
+        "constants.json#identity.PHONE_MASK_FORMAT"
+      ],
+      "notes": "The bind (vanDevices/{vanId}) would be done by bindDeviceToVan, but the driver app reads drivers/{CODE} directly instead; no callable is called."
+    },
+    {
+      "n": 2,
+      "actor": "driverapp",
+      "action": "Start Shift creates the trips doc (vanId, routeId from the van, driverId, wardIds snapshot from the driver, date = IST midnight, startedAt) and sets vans.status = on_shift and vans.currentTripId = tripId, atomically on the van doc.",
+      "via": "rule",
+      "reads": ["vans/{vanId}", "drivers/{driverId}"],
+      "writes": ["trips/{tripId}", "vans/{vanId}"],
+      "contractRefs": [
+        "trip.schema.json#wardIds",
+        "trip.schema.json#routeId",
+        "trip.schema.json#driverId",
+        "van.schema.json#currentTripId",
+        "van.schema.json#status",
+        "constants.json#identity.CLAIM_VAN_ID",
+        "constants.json#identity.CLAIM_DRIVER_ID",
+        "constants.json#identity.CLAIM_CURRENT_TRIP_ID"
+      ],
+      "notes": "The wardIds snapshot is taken at shift start so a mid-shift allotment change does not rewrite today's record. currentTripId is the atomic marker."
+    },
+    {
+      "n": 3,
+      "actor": "driverapp",
+      "action": "The driver marks each ward done; mark_ward_done_flow appends {wardId, doneAt, flagged} to trips.wardsDone of today's open trip (out-of-order marks allowed, flagged when outside the ward radius).",
+      "via": "rule",
+      "reads": ["trips/{tripId}", "wards/{wardId}", "vans/{vanId}"],
+      "writes": ["trips/{tripId}"],
+      "contractRefs": [
+        "trip.schema.json#wardsDone",
+        "ward.schema.json#center",
+        "ward.schema.json#radiusM"
+      ],
+      "notes": "Direct Firestore write through TripsRepository.appendWardDone; not a callable. The ward must be in the trip's wardIds snapshot."
+    },
+    {
+      "n": 4,
+      "actor": "driverapp",
+      "action": "End Shift sets trips.endedAt, vans.status = idle, and vans.currentTripId = null, then stops tracking and flushes the GPS trail.",
+      "via": "rule",
+      "reads": ["trips/{tripId}", "vans/{vanId}"],
+      "writes": ["trips/{tripId}", "vans/{vanId}"],
+      "contractRefs": [
+        "trip.schema.json#endedAt",
+        "van.schema.json#status",
+        "van.schema.json#currentTripId"
+      ],
+      "notes": "Shared write set (end_shift_writes.dart) also used by the depot auto-end rule (ruling #29)."
+    }
+  ],
+  "slices": [
+    {
+      "id": "driverapp.shift-operations.shift-flow",
+      "app": "driverapp",
+      "surface": "lib/features/shift_start/domain/start_shift.dart",
+      "state": "wired",
+      "dependsOn": [],
+      "contractRefs": [
+        "trip.schema.json#wardIds",
+        "van.schema.json#currentTripId",
+        "van.schema.json#status",
+        "driver.schema.json#vanId"
+      ],
+      "evidence": "lib/features/shift_start/domain/start_shift.dart creates the trip and sets vans.currentTripId + status = on_shift via repositories; lib/features/live_route/mark_ward_done_flow.dart appends wardsDone; lib/core/domain/end_shift_writes.dart ends the shift. All are direct Firestore writes, not callables.",
+      "blockedBy": ""
+    },
+    {
+      "id": "platform.shift-operations.callables",
+      "app": "platform",
+      "surface": "04-functions/src/callables/shift.ts",
+      "state": "specified",
+      "dependsOn": [],
+      "contractRefs": [
+        "callables.json#startShift",
+        "callables.json#endShift",
+        "callables.json#markWardDone",
+        "callables.json#bindDeviceToVan",
+        "van.schema.json#currentTripId",
+        "wardDuty.schema.json#status"
+      ],
+      "evidence": "04-functions/src/callables/shift.ts and identity.ts contain real callable code, but callables.json marks all four lifecycle as planned.",
+      "blockedBy": "No app calls these callables; the driver app writes trips and vans directly to Firestore instead. bindDeviceToVan, startShift, endShift and markWardDone are unused."
+    }
+  ],
+  "handoffs": [
+    {
+      "from": "driverapp",
+      "to": "platform",
+      "via": "trips/{tripId}",
+      "latency": "live",
+      "notes": "The driver's shift writes are the trip record the office reads later; no callable mediates them."
+    }
+  ],
+  "contractRefs": {
+    "collections": ["vans", "trips", "drivers", "vanDevices", "wardDuty"],
+    "callables": ["startShift", "endShift", "markWardDone", "bindDeviceToVan"],
+    "enums": ["van.status", "wardDuty.status", "vanDevice.claimMode"],
+    "constants": [
+      "identity.CLAIM_VAN_ID",
+      "identity.CLAIM_DRIVER_ID",
+      "identity.CLAIM_CURRENT_TRIP_ID",
+      "identity.DRIVER_CODE_PATTERN"
+    ]
+  },
+  "scenario": {
+    "id": "D1",
+    "name": "Shift start, ward collection, end shift (PRD-2 driver feature)",
+    "steps": [
+      "Driver enters the code and confirms the allotted van and ward count.",
+      "Driver taps Start Shift; the trip doc is created and vans.currentTripId is set.",
+      "Driver marks each ward done; trips.wardsDone grows.",
+      "Driver ends the shift; trips.endedAt is set and vans.currentTripId is cleared.",
+      "Killing and reopening the app mid-shift resumes the open trip without re-entering the code."
+    ],
+    "tiers": ["simulated", "live"]
+  },
+  "openQuestions": [
+    "The driver app writes trips and vans directly instead of calling startShift / endShift / markWardDone; decide whether to wire the callables or keep direct writes as the canonical path.",
+    "bindDeviceToVan is specified but never called; the driver app reads drivers/{CODE} directly. Confirm whether the device-to-van binding is ever created.",
+    "The user app's stack is React/Vite, not Flutter as the PRD states."
+  ]
+}

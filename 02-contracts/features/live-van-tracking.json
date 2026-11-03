@@ -1,0 +1,175 @@
+{
+  "id": "live-van-tracking",
+  "title": "Live van tracking and ETA",
+  "status": "partial",
+  "owner": "platform",
+  "updated": "2026-11-03",
+  "journey": "The driver starts a shift and the tracking engine writes the van's location on a cadence; the citizen's app resolves their ward to a route and watches only the vans on that route, computing an ETA from the remaining wards; the office's live map shows every van.",
+  "actors": ["driverapp", "userapp", "adminpanel"],
+  "steps": [
+    {
+      "n": 1,
+      "actor": "driverapp",
+      "action": "Driver starts a shift; the tracking engine samples GPS and writes vans/{vanId}.lastLocation on the GPS_INTERVAL_SEC cadence, plus vans.batteryPct and vans.status = on_shift.",
+      "via": "rule",
+      "reads": ["vans/{vanId}"],
+      "writes": ["vans/{vanId}"],
+      "contractRefs": [
+        "van.schema.json#lastLocation",
+        "van.schema.json#batteryPct",
+        "van.schema.json#status",
+        "constants.json#tracking.GPS_INTERVAL_SEC",
+        "constants.json#tracking.MIN_MOVE_M",
+        "constants.json#tracking.HEARTBEAT_SEC",
+        "constants.json#tracking.LOW_BATTERY_PCT",
+        "constants.json#tracking.GPS_INTERVAL_LOW_BATTERY_SEC"
+      ],
+      "notes": "Direct Firestore write through the driver app's repositories, not a callable. The vanId claim scopes the write."
+    },
+    {
+      "n": 2,
+      "actor": "userapp",
+      "action": "The citizen's app resolves its wardId (device location inside a ward's center + radiusM, or manual picker) and reads wards/{wardId}.routeId to learn which route serves it.",
+      "via": "rule",
+      "reads": ["wards/{wardId}"],
+      "writes": [],
+      "contractRefs": [
+        "ward.schema.json#center",
+        "ward.schema.json#radiusM",
+        "ward.schema.json#routeId"
+      ],
+      "notes": "The ward is resolved on the device and saved locally; the server never names the citizen's scope."
+    },
+    {
+      "n": 3,
+      "actor": "userapp",
+      "action": "The citizen's app watches vans where routeId == ward.routeId and status == on_shift, drawing a live marker per van.",
+      "via": "rule",
+      "reads": ["vans/{vanId}"],
+      "writes": [],
+      "contractRefs": [
+        "van.schema.json#lastLocation",
+        "van.schema.json#status",
+        "van.schema.json#routeId",
+        "route.schema.json#wardIds"
+      ],
+      "notes": "Scoped by the routeId claim; the app never loads all vans."
+    },
+    {
+      "n": 4,
+      "actor": "userapp",
+      "action": "The citizen's app computes the ETA: sum of straight-line distances from the van through the remaining wards in routes.wardIds up to the user's ward, divided by AVG_VAN_SPEED_KMPH (fallback when speedKmph is below 5 km/h).",
+      "via": "rule",
+      "reads": ["routes/{routeId}", "vans/{vanId}"],
+      "writes": [],
+      "contractRefs": [
+        "route.schema.json#wardIds",
+        "constants.json#eta.AVG_VAN_SPEED_KMPH",
+        "constants.json#arrival.STALE_LOCATION_SEC"
+      ],
+      "notes": "Prototype ETA method from PRD-1 section 0.13 Flow C. Names AVG_VAN_SPEED_KMPH explicitly."
+    },
+    {
+      "n": 5,
+      "actor": "adminpanel",
+      "action": "The office's live map shows every van in the staff member's ward scope, colored by van.status, with an offline badge when updatedAt is stale.",
+      "via": "rule",
+      "reads": ["vans/{vanId}"],
+      "writes": [],
+      "contractRefs": [
+        "van.schema.json#lastLocation",
+        "van.schema.json#status"
+      ],
+      "notes": "Read-only live view of the same van docs the citizen sees."
+    }
+  ],
+  "slices": [
+    {
+      "id": "driverapp.live-van-tracking.tracking-engine",
+      "app": "driverapp",
+      "surface": "lib/features/tracking/domain/tracking_engine.dart",
+      "state": "wired",
+      "dependsOn": [],
+      "contractRefs": [
+        "van.schema.json#lastLocation",
+        "constants.json#tracking.GPS_INTERVAL_SEC",
+        "constants.json#tracking.MIN_MOVE_M",
+        "constants.json#tracking.HEARTBEAT_SEC"
+      ],
+      "evidence": "lib/features/tracking/domain/tracking_engine.dart writes vans.lastLocation on a cadence via FirestoreVansRepository.updateLastLocation (lib/core/repositories/firestore/firestore_vans_repository.dart). Reads the real backend; not a callable.",
+      "blockedBy": ""
+    },
+    {
+      "id": "userapp.live-van-tracking.ward-map",
+      "app": "userapp",
+      "surface": "apps/citizen_app/src/App.tsx",
+      "state": "built",
+      "dependsOn": [],
+      "contractRefs": [
+        "ward.schema.json#routeId",
+        "van.schema.json#lastLocation",
+        "constants.json#eta.AVG_VAN_SPEED_KMPH"
+      ],
+      "evidence": "apps/citizen_app/src/App.tsx renders vans from VanSimulationEngine and seed vans (src/core/seedData.ts); no real Firestore watch of vans exists in the user app.",
+      "blockedBy": "The user app reads seed/simulation data, not real Firestore vans. There is no onSnapshot of vans scoped by routeId; grep for collection('vans') returns only seedData and simulationService."
+    },
+    {
+      "id": "adminpanel.live-van-tracking.live-map",
+      "app": "adminpanel",
+      "surface": "src/screens/A15_LiveMap.tsx",
+      "state": "built",
+      "dependsOn": [],
+      "contractRefs": [
+        "van.schema.json#status",
+        "van.schema.json#lastLocation"
+      ],
+      "evidence": "src/App.tsx routes liveMap to A15_LiveMap; src/services/dataService.ts reads and writes localStorage under prefix safai_v3_, not Firebase.",
+      "blockedBy": "The admin panel has zero Firebase; its data layer is a pure localStorage mock, so the live map is not wired to the real backend."
+    }
+  ],
+  "handoffs": [
+    {
+      "from": "driverapp",
+      "to": "userapp",
+      "via": "vans/{vanId}",
+      "latency": "live",
+      "notes": "The driver writes lastLocation; the citizen's app reads the same doc, scoped to its own ward's route."
+    },
+    {
+      "from": "driverapp",
+      "to": "adminpanel",
+      "via": "vans/{vanId}",
+      "latency": "live",
+      "notes": "The office sees the same van doc the citizen sees, filtered by its staff ward scope."
+    }
+  ],
+  "contractRefs": {
+    "collections": ["vans", "wards", "routes"],
+    "callables": [],
+    "enums": ["van.status"],
+    "constants": [
+      "tracking.GPS_INTERVAL_SEC",
+      "tracking.MIN_MOVE_M",
+      "tracking.HEARTBEAT_SEC",
+      "tracking.LOW_BATTERY_PCT",
+      "tracking.GPS_INTERVAL_LOW_BATTERY_SEC",
+      "eta.AVG_VAN_SPEED_KMPH",
+      "arrival.STALE_LOCATION_SEC"
+    ]
+  },
+  "scenario": {
+    "id": "L1",
+    "name": "Live van map end-to-end (PRD-1 Test L1)",
+    "steps": [
+      "Driver phone starts a shift on route R and the van marker appears in the user app within 15 seconds.",
+      "A second phone with the user app in a ward of route R shows the van moving.",
+      "A third phone with a user in a ward of a different route shows no van.",
+      "The admin Live Map shows the same van."
+    ],
+    "tiers": ["simulated", "live"]
+  },
+  "openQuestions": [
+    "The user app's stack is React/Vite, not Flutter as the PRD states; the ETA computation lives in App.tsx but reads simulation data. Confirm the plan to replace it with a real Firestore watch of vans.",
+    "The user app's firebase project id is hardcoded to safai-saathi-panchmahal while the platform project is safaaisaathi-63a87; confirm which project the live-van query targets."
+  ]
+}

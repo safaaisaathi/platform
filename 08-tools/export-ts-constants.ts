@@ -5,7 +5,16 @@
 // SCREAMING_SNAKE_CASE names. The file is generated: it starts with a DO NOT
 // EDIT header and is safe to regenerate.
 //
-// Usage: node export-ts-constants.ts <app-repo>   (or set APP_REPO, default ".")
+// Usage: node export-ts-constants.ts <app-repo> [--out <file.ts>]
+//
+// The --out flag writes to an exact path instead of the default
+// lib/generated/app_constants.ts. The backend uses it to write
+// 04-functions/src/generated/constants.ts, because the backend lives inside
+// this repo and must not import JSON from outside its own src/ tree.
+//
+// The flag may come before or after the repo path. Both orders work, because
+// the repo path is the first argument that is not a flag and not a flag's
+// value.
 
 import { mkdir, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -46,10 +55,37 @@ function isExportable(value: Json | undefined): boolean {
 
 async function main(): Promise<void> {
   const errors: string[] = [];
-  const target = resolveTargetRepo(process.argv);
+
+  // The repo path is the first argument that is neither a flag nor a flag's
+  // value. The flag may come before or after it.
+  const argv = process.argv.slice(2);
+  let positional: string | undefined;
+  let explicitOut: string | undefined;
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === '--out') {
+      explicitOut = argv[index + 1];
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith('--out=')) {
+      explicitOut = arg.slice('--out='.length);
+      continue;
+    }
+    if (arg.startsWith('--')) continue;
+    if (positional === undefined) positional = arg;
+  }
+
+  const target = positional !== undefined
+    ? path.resolve(positional)
+    : resolveTargetRepo(process.argv);
   const targetStat = await stat(target).catch(() => undefined);
   if (targetStat === undefined || !targetStat.isDirectory()) {
     printErrors(HEADER, [`target repo not found: ${target}`]);
+  }
+
+  if (explicitOut !== undefined && explicitOut.length === 0) {
+    printErrors(HEADER, ['--out needs a file path']);
   }
 
   const doc = asObject(await readJson(CONSTANTS_PATH), '02-contracts/constants.json');
@@ -103,7 +139,9 @@ async function main(): Promise<void> {
     lines.push('');
   }
 
-  const outPath = path.join(target, 'lib', 'generated', 'app_constants.ts');
+  const outPath = explicitOut !== undefined
+    ? path.resolve(explicitOut)
+    : path.join(target, 'lib', 'generated', 'app_constants.ts');
   await mkdir(path.dirname(outPath), { recursive: true });
   await writeFile(outPath, `${lines.join('\n')}\n`);
   console.log(`exported ${entries.length} constants to ${outPath}`);

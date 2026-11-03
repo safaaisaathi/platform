@@ -5,9 +5,25 @@
   "description": "The citizen's report. The busiest collection and the one the admin panel cares about most. PRD-2 section 3.3.",
   "type": "object",
   "x-docId": "auto",
-  "x-writes": ["userapp: create", "driverapp: status, resolvedAt (D4 scope only)", "adminpanel: via setComplaintStatus", "platform functions: mergedInto, escalationLevel"],
-  "x-reads": ["userapp: own only, scoped by the deviceId claim", "driverapp: wards in the current trip only", "adminpanel: within the live staff ward scope"],
+  "x-docIdRule": "The Firestore document id is the complaint id. The id field MIRRORS it. It is not a second id. It exists because both the user app and the admin panel keep the id inside the document they hold in memory, and a round-trip shape must survive a write and a read.",
+  "x-writes": [
+    "userapp: create, and citizenVerifyResolution, reopenComplaint",
+    "driverapp: status, resolvedAt (D4 scope only)",
+    "adminpanel: via setComplaintStatus",
+    "platform functions: mergedInto, escalationLevel, assignedAt, escalatedAt, escalatedTo, autoResolveDeadline, citizenVerified*, reopened*"
+  ],
+  "x-reads": [
+    "userapp: own only, scoped by the deviceId claim",
+    "driverapp: wards in the current trip only",
+    "adminpanel: within the live staff ward scope"
+  ],
+  "x-no-pii": "This collection holds NO phone number. Neither the citizen's nor the staff member's. A raw phone in a complaint is readable by every staff member who can read the complaint, because a Firestore read returns the whole document and the rules cannot redact a field. The raw phone lives in staffPhones/{code}. CHG-0012.",
   "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "A copy of the Firestore document id. It MUST equal the document id. Both the user app and the admin panel read it."
+    },
     "ticketId": {
       "type": "string",
       "pattern": "^PMH-[0-9]{8}-[0-9]{4}$",
@@ -23,6 +39,11 @@
     "photoUrl": {
       "type": "string",
       "description": "Storage path complaints/{complaintId}/photo.jpg. Compressed under 500 KB."
+    },
+    "phoneMasked": {
+      "type": "string",
+      "pattern": "^[0-9]{2}X{6}[0-9]{2}$",
+      "description": "The MASKED complainant phone, shape PHONE_MASK_FORMAT, 98XXXXXX10. Ten characters, six of them X. The raw phone lives in complaintPhones/{complaintId}. A Firestore read returns the whole document and the rules cannot redact a field, so a raw phone here would reach every staff member who can read the complaint. CHG-0012."
     },
     "location": {
       "type": "object",
@@ -44,18 +65,68 @@
     },
     "assignedTo": {
       "type": "string",
-      "description": "The staff doc id this complaint is assigned to."
+      "description": "The staff doc id this complaint is assigned to. The staff NAME is read from staff/{assignedTo}. It is never copied into the complaint."
+    },
+    "assignedAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "A SERVER timestamp. Set when status becomes assigned."
     },
     "escalationLevel": {
       "$ref": "https://safaaisaathi.contracts/enums.json#/$defs/complaint.escalationLevel"
     },
+    "escalatedTo": {
+      "type": ["string", "null"],
+      "description": "The staff doc id this complaint was escalated to. The staff NAME is read from staff/{escalatedTo}. It is never copied into the complaint."
+    },
+    "escalatedAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "A SERVER timestamp. Set when escalationLevel rises."
+    },
     "resolvedPhotoUrl": {
       "type": "string",
-      "description": "Storage path complaints/{complaintId}/resolved.jpg."
+      "description": "Storage path complaints/{complaintId}/resolved.jpg. The cleaning proof photo."
     },
     "resolvedAt": {
       "type": ["string", "null"],
       "format": "date-time"
+    },
+    "autoResolveDeadline": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "A SERVER timestamp. Set when the office resolves a complaint and the citizen is asked to verify. The autoResolvePendingComplaints schedule closes the complaint after this instant. Null means no verification was asked for."
+    },
+    "citizenVerifiedAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "A SERVER timestamp. When the citizen answered the verification request."
+    },
+    "citizenVerifiedStatus": {
+      "type": ["string", "null"],
+      "$ref": "https://safaaisaathi.contracts/enums.json#/$defs/complaint.verificationOutcome",
+      "description": "What the citizen said. confirmed accepts the resolution. rejected reopens it."
+    },
+    "citizenRejectReason": {
+      "type": ["string", "null"],
+      "description": "Why the citizen rejected the resolution. Free text from the citizen."
+    },
+    "citizenRejectPhotoUrl": {
+      "type": ["string", "null"],
+      "description": "Storage path complaints/{complaintId}/reject.jpg. The citizen's proof that the work was not done."
+    },
+    "reopenedAt": {
+      "type": ["string", "null"],
+      "format": "date-time",
+      "description": "A SERVER timestamp. When the complaint was reopened."
+    },
+    "reopenReason": {
+      "type": ["string", "null"],
+      "description": "Why the complaint was reopened. Free text from the citizen."
+    },
+    "reopenPhotoUrl": {
+      "type": ["string", "null"],
+      "description": "Storage path complaints/{complaintId}/reopen.jpg. The citizen's proof."
     },
     "mergedInto": {
       "type": ["string", "null"],
@@ -63,7 +134,7 @@
     },
     "note": {
       "type": "string",
-      "description": "Free text from the office."
+      "description": "Free text from the office. This is the only note field. The office's cleaning note and the citizen's reason are separate fields."
     }
   },
   "required": ["ticketId", "deviceId", "category", "wardId", "createdAt", "status", "escalationLevel"]

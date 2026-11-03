@@ -1,0 +1,156 @@
+{
+  "id": "arrival-notification",
+  "title": "Arrival push notification",
+  "status": "partial",
+  "owner": "platform",
+  "updated": "2026-11-03",
+  "journey": "The driver writes a location, the arrivalAlert server function checks the geometry and the freshness, it pushes to the FCM topic ward_{wardId}, and the citizen's app receives the alert and opens the map.",
+  "actors": ["driverapp", "platform", "userapp"],
+  "steps": [
+    {
+      "n": 1,
+      "actor": "driverapp",
+      "action": "The driver writes vans/{vanId}.lastLocation on the GPS_INTERVAL_SEC cadence while the van is on shift.",
+      "via": "rule",
+      "reads": ["vans/{vanId}"],
+      "writes": ["vans/{vanId}"],
+      "contractRefs": [
+        "van.schema.json#lastLocation",
+        "van.schema.json#status",
+        "constants.json#tracking.GPS_INTERVAL_SEC"
+      ],
+      "notes": "The producer of the arrival signal; a direct Firestore write, not a callable."
+    },
+    {
+      "n": 2,
+      "actor": "platform",
+      "action": "arrivalAlert fires on the vans/{vanId} update, gates on freshness (now - lastLocation.updatedAt <= STALE_LOCATION_SEC) and status == on_shift, reads the trip and route, walks routes.wardIds in order to find the next un-alerted ward.",
+      "via": "server-function",
+      "reads": ["vans/{vanId}", "trips/{tripId}", "routes/{routeId}", "wards/{wardId}"],
+      "writes": ["trips/{tripId}"],
+      "contractRefs": [
+        "callables.json#arrivalAlert",
+        "van.schema.json#lastLocation",
+        "trip.schema.json#alertedWardIds",
+        "ward.schema.json#center",
+        "ward.schema.json#radiusM",
+        "route.schema.json#wardIds",
+        "constants.json#arrival.ARRIVAL_ALERT_RADIUS_M",
+        "constants.json#arrival.STALE_LOCATION_SEC"
+      ],
+      "notes": "Geometry: distance(van.lastLocation, ward.center) <= ward.radiusM + ARRIVAL_ALERT_RADIUS_M (100 m, CHG-0007 changed it from 500). Idempotency via trips.alertedWardIds inside a transaction."
+    },
+    {
+      "n": 3,
+      "actor": "platform",
+      "action": "arrivalAlert sends an FCM push to topic ward_{wardId} (priority HIGH) and appends the ward to trips.alertedWardIds in the same transaction.",
+      "via": "fcm",
+      "reads": ["trips/{tripId}"],
+      "writes": ["trips/{tripId}"],
+      "contractRefs": [
+        "callables.json#arrivalAlert",
+        "trip.schema.json#alertedWardIds"
+      ],
+      "notes": "The topic is per ward so every citizen in that ward receives it."
+    },
+    {
+      "n": 4,
+      "actor": "userapp",
+      "action": "The citizen's app is subscribed to ward_{wardId}, receives the push, renders the notification, and tapping it opens the map (U1).",
+      "via": "fcm",
+      "reads": [],
+      "writes": [],
+      "contractRefs": [
+        "constants.json#arrival.ARRIVAL_ALERT_RADIUS_M"
+      ],
+      "notes": "The ward topic is subscribed after bootstrapUserSession resolves the ward; the app never polls."
+    }
+  ],
+  "slices": [
+    {
+      "id": "driverapp.arrival-notification.location-producer",
+      "app": "driverapp",
+      "surface": "lib/features/tracking/domain/tracking_engine.dart",
+      "state": "wired",
+      "dependsOn": [],
+      "contractRefs": [
+        "van.schema.json#lastLocation",
+        "constants.json#tracking.GPS_INTERVAL_SEC"
+      ],
+      "evidence": "lib/features/tracking/domain/tracking_engine.dart writes vans.lastLocation on a cadence via FirestoreVansRepository.updateLastLocation.",
+      "blockedBy": ""
+    },
+    {
+      "id": "platform.arrival-notification.arrivalAlert",
+      "app": "platform",
+      "surface": "04-functions/src/triggers/arrivalAlert.ts",
+      "state": "built",
+      "dependsOn": [],
+      "contractRefs": [
+        "callables.json#arrivalAlert",
+        "van.schema.json#lastLocation",
+        "trip.schema.json#alertedWardIds",
+        "ward.schema.json#center",
+        "ward.schema.json#radiusM",
+        "constants.json#arrival.ARRIVAL_ALERT_RADIUS_M",
+        "constants.json#arrival.STALE_LOCATION_SEC"
+      ],
+      "evidence": "04-functions/src/triggers/arrivalAlert.ts is a real onWrite implementation with freshness, geometry (radiusM + ARRIVAL_ALERT_RADIUS_M), idempotency via alertedWardIds, and FCM push to ward_{wardId}.",
+      "blockedBy": "callables.json marks arrivalAlert lifecycle as planned; no client is wired to the ward_{wardId} topic yet, so the push is not delivered end to end."
+    },
+    {
+      "id": "userapp.arrival-notification.ward-alert",
+      "app": "userapp",
+      "surface": "apps/citizen_app/src/App.tsx",
+      "state": "built",
+      "dependsOn": [],
+      "contractRefs": [
+        "constants.json#arrival.ARRIVAL_ALERT_RADIUS_M"
+      ],
+      "evidence": "apps/citizen_app/src/App.tsx renders an arrival banner from VanSimulationEngine.onArrivalAlert and opens the map on tap.",
+      "blockedBy": "The user app uses simulation, not a real FCM subscription to ward_{wardId}. topics.json x-gaps: 'There is no inbound FCM handler' (no onMessage / onBackgroundMessage)."
+    }
+  ],
+  "handoffs": [
+    {
+      "from": "driverapp",
+      "to": "platform",
+      "via": "vans/{vanId}",
+      "latency": "live",
+      "notes": "The driver's location write is the trigger for the arrivalAlert server function."
+    },
+    {
+      "from": "platform",
+      "to": "userapp",
+      "via": "ward_{wardId}",
+      "latency": "live",
+      "notes": "arrivalAlert pushes to the ward topic; every citizen subscribed to that ward receives it."
+    }
+  ],
+  "contractRefs": {
+    "collections": ["vans", "trips", "wards", "routes"],
+    "callables": [],
+    "enums": ["van.status"],
+    "constants": [
+      "arrival.ARRIVAL_ALERT_RADIUS_M",
+      "arrival.STALE_LOCATION_SEC",
+      "tracking.GPS_INTERVAL_SEC"
+    ]
+  },
+  "scenario": {
+    "id": "A1",
+    "name": "Arrival alert end-to-end",
+    "steps": [
+      "The driver starts a shift and writes vans.lastLocation on the cadence.",
+      "As the van approaches the next un-alerted ward within radiusM + ARRIVAL_ALERT_RADIUS_M (100 m), arrivalAlert fires.",
+      "A push arrives on topic ward_{wardId} and the citizen's map opens on tap.",
+      "Only one push is sent per ward (alertedWardIds idempotency)."
+    ],
+    "tiers": ["simulated", "live"]
+  },
+  "openQuestions": [
+    "The user app's stack is React/Vite, not Flutter as the PRD states.",
+    "The user app's firebase project id is hardcoded to safai-saathi-panchmahal while the platform project is safaaisaathi-63a87; confirm which project the FCM subscription targets.",
+    "No client subscribes to ward_{wardId} yet; topics.json x-gaps records no inbound FCM handler. Decide whether to wire onMessage/onBackgroundMessage before marking this connected."
+  ]
+}

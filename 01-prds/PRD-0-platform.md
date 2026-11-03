@@ -25,10 +25,11 @@ see_also:
 
 | What | The definition | Where it lives |
 |---|---|---|
-| **The data** | 14 collections, their fields and their shapes | `02-contracts/collections/` |
-| **The vocabulary** | 9 frozen enums, 35 constants, 8 claims, 4 topics, 9 reason codes | `02-contracts/` |
-| **The authorization** | One rules file. Who may read and write what | `03-rules/firestore.rules` |
-| **The decisions** | 11 callables and the scheduled Functions | `04-functions/`, `02-contracts/callables.json` |
+| **The data** | 18 collections, their fields and their shapes | `02-contracts/collections/` |
+| **The vocabulary** | 11 frozen enums, 35 constants, 8 claims, 4 topics, 10 reason codes | `02-contracts/` |
+| **The authorization** | Two rules files. The loose PHASE 1 one, and the claims-based PHASE 2 one | `03-rules/` |
+| **The decisions** | 15 callables and 7 server functions | `04-functions/`, `02-contracts/callables.json` |
+| **The journeys** | The feature layer. Which app does what part of a cross-app journey | `02-contracts/features/` |
 | **The change process** | How a change is proposed, recorded and adopted | `06-changes/` |
 
 ## 3. The three non-negotiable rules
@@ -75,15 +76,21 @@ see_also:
 | `trips` | write | read | read | write alerted |
 | `trips/{id}/trail` | write | none | read | none |
 | `complaints` | write 2 fields | create | via callable | write merged |
+| `complaintPhones` | none | create, once | read district only | none |
 | `notices` | read | read | via callable | none |
 | `notices/{id}/receipts` | write | none | none | none |
 | `ratings` | none | write | read | none |
+| `collectionFeedback` | none | write | none | none |
 | `staff` | none | none | via callable | read |
 | `staffPhones` | none | none | via callable | none |
 | `drivers` | read own | none | via callable | read |
+| `wardDuty` | none | read via callable | write via callable | write |
 | `vanDevices` | none | none | none | write |
+| `rateLimit` | none | none | none | write |
 
 **The admin column is entirely "via callable".** That is Q5. A revoked staff member loses access immediately.
+
+**The user app writes no duty board.** The citizen may not decide a ward's collection is done. CHG-0011.
 
 ## 6. The data rules
 

@@ -138,7 +138,9 @@ git status --porcelain 02-contracts/collections/.composed/
 
 **The order rule, one more time.** Compose, then commit, then sync. The fingerprint covers the composed files, because `sync-contract.ts` copies `02-contracts/` recursively.
 
-**An extension changes the composed schemas too.** If the app's extension file moved, this command produces a different strict schema for that collection. That is why an extension registration is a two-repo event: the app changes its own file, the platform registers it, and the platform recomposes.
+**An extension changes the composed schemas too.** If the app's extension file moved, this command produces a different strict schema for that collection. That is why an extension registration is a two-repo event: the app changes its own file, the platform mirrors it and registers it, and the platform recomposes.
+
+**The platform's mirror is what the tools read.** `build-schemas.ts` and `check-consistency.ts` read `02-contracts/extensions/<app>.json`, the platform's registered copy. Copy the app's file there with `cp` before you recompose, or the composed schemas will not pick up the change. The hash in the registry proves the copy is byte identical to the app's file.
 
 ### 4.3 Forward, step 3: sync one app
 

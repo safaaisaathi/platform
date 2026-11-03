@@ -2,14 +2,21 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://safaaisaathi.contracts/extensions/registry.json",
   "title": "Safai Saathi extension registry",
-  "description": "Which app owns which extension. The platform owns the REGISTRATION. The app owns the FILE. A hash mismatch means the app changed its extension without re-registering, and CI fails.",
+  "description": "Which app owns which extension. The platform owns the REGISTRATION. The app owns the FILE. The platform also keeps a registered MIRROR of that file inside this repo, so the contract can be validated and released without the app repos being checked out. A hash mismatch means the app changed its extension without re-registering, and CI fails.",
   "x-empty-ok": true,
   "x-note": "An app with no extension needs no entry. The registry is the platform's view of app-owned additions to the core collections.",
+  "x-rules": {
+    "source": "source is the APP's file, relative to the folder that holds the platform repo and the app repos side by side. The app owns it. The platform never writes it.",
+    "mirror": "mirror is the platform's REGISTERED COPY of that file, relative to the platform repo root. It is byte identical to the app's file, and the hash below proves it. The mirror is what the contract tools read, so the contract can be validated and released on its own.",
+    "hash": "hash is the sha256 of the file's bytes, with a sha256: prefix. The mirror's hash and the app's file's hash must both equal it.",
+    "reRegister": "When an app bumps extensionVersion, the platform owner copies the new file over the mirror, recomputes the hash, and updates this entry. Both files move together."
+  },
   "apps": {
     "driverapp": {
       "app": "driverapp",
       "extensionVersion": "1",
       "source": "driverapp/.contract/extensions/driverapp.json",
+      "mirror": "02-contracts/extensions/driverapp.json",
       "hash": "sha256:a56cdec5e05b60a52eaec64502a3b6601fe929a5ea6d6a3299aa1487931ef671",
       "extends": [
         "trip"
@@ -20,6 +27,7 @@
       "app": "userapp",
       "extensionVersion": "1",
       "source": "userapp/.contract/extensions/userapp.json",
+      "mirror": "02-contracts/extensions/userapp.json",
       "hash": "sha256:193030b0d688222b27897dbda3a560a003f9efa52c21627d5f370f10175d3a2a",
       "extends": [
         "collectionFeedback"

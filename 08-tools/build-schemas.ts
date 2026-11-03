@@ -24,6 +24,7 @@ import {
   ENUMS_REF_PREFIX,
   MONOREPO_ROOT,
   REGISTRY_PATH,
+  REPO_ROOT,
   asObject,
   isJsonObject,
   ok,
@@ -40,6 +41,16 @@ const HEADER = 'build-schemas failed';
 
 function errorText(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause);
+}
+
+// A missing or unreadable candidate lets the caller try the next path. The
+// final "not visible" error names every path that was tried.
+async function readExtensionFile(filePath: string): Promise<Json | undefined> {
+  try {
+    return await tryReadJson(filePath);
+  } catch {
+    return undefined;
+  }
 }
 
 type ExtensionMerge = { app: string; properties: JsonObject };
@@ -70,9 +81,10 @@ function makeInliner(defs: JsonObject): (node: Json) => Json {
 }
 
 // Reads the registered extension files and maps each collection to the
-// extension properties that must be merged into it. The registry's "source"
-// paths are relative to the folder that holds the platform repo and the app
-// repos side by side.
+// extension properties that must be merged into it. The registry's "mirror"
+// path is relative to the platform repo and is the one CI can always read. The
+// "source" path is relative to the folder that holds the platform repo and the
+// app repos side by side, and is only a fallback for an older registry.
 async function collectExtensionMerges(known: ReadonlySet<string>): Promise<{
   merges: Map<string, ExtensionMerge[]>;
   errors: string[];
@@ -91,10 +103,17 @@ async function collectExtensionMerges(known: ReadonlySet<string>): Promise<{
       errors.push(`registry.json: entry "${app}" must be an object`);
       continue;
     }
-    const sourcePath = path.resolve(MONOREPO_ROOT, `${app}/.contract/extensions/${app}.json`);
-    const extRaw = await tryReadJson(sourcePath);
+    const mirror = entryRaw['mirror'];
+    const source = entryRaw['source'];
+    const mirrorPath = typeof mirror === 'string' && mirror.length > 0 ? path.resolve(REPO_ROOT, mirror) : undefined;
+    const sourceRel = typeof source === 'string' && source.length > 0 ? source : `${app}/.contract/extensions/${app}.json`;
+    const sourcePath = path.resolve(MONOREPO_ROOT, sourceRel);
+
+    const tried = mirrorPath === undefined ? sourcePath : `${mirrorPath} or ${sourcePath}`;
+    let extRaw = mirrorPath === undefined ? undefined : await readExtensionFile(mirrorPath);
+    if (extRaw === undefined) extRaw = await readExtensionFile(sourcePath);
     if (extRaw === undefined) {
-      errors.push(`registry.json: the extension file for "${app}" is not visible at ${sourcePath}`);
+      errors.push(`registry.json: the extension file for "${app}" is not visible at ${tried}`);
       continue;
     }
     if (!isJsonObject(extRaw)) {

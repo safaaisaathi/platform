@@ -201,10 +201,26 @@ export async function collectExtensionFields(): Promise<Map<string, Set<string>>
 
   for (const entryRaw of Object.values(apps)) {
     if (!isJsonObject(entryRaw)) continue;
-    const source = entryRaw['source'];
-    if (typeof source !== 'string' || source.length === 0) continue;
 
-    const extRaw = await tryReadJson(path.resolve(MONOREPO_ROOT, source));
+    // The mirror lives inside the platform repo, so it is readable on a bare CI
+    // checkout where the app repos are absent. Fall back to the app's own file
+    // only for a registry that predates the mirror.
+    const mirror = entryRaw['mirror'];
+    const source = entryRaw['source'];
+    const candidates: string[] = [];
+    if (typeof mirror === 'string' && mirror.length > 0) candidates.push(path.resolve(REPO_ROOT, mirror));
+    if (typeof source === 'string' && source.length > 0) candidates.push(path.resolve(MONOREPO_ROOT, source));
+
+    let extRaw: Json | undefined;
+    for (const candidate of candidates) {
+      try {
+        extRaw = await tryReadJson(candidate);
+      } catch {
+        // A broken mirror must not stop the fallback to the app's own file.
+        extRaw = undefined;
+      }
+      if (extRaw !== undefined) break;
+    }
     if (extRaw === undefined || !isJsonObject(extRaw)) continue;
 
     const extendsMap = extRaw['extends'];

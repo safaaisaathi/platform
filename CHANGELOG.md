@@ -29,6 +29,16 @@ see_also:
 
 ### Added
 
+- `02-contracts/extensions/<app>.json`. The platform's registered mirror of each app-owned extension file. The contract tools read the mirror, so the contract validates, composes and releases without the three app repos being checked out beside it. Before this, the CI gate was red on every push, because it read `../driverapp/.contract/extensions/driverapp.json`, which a CI runner does not have.
+
+### Changed
+
+- `check-consistency.ts` verifies the mirror's hash and the mirror's `extensionVersion`, and it verifies the app's own file's hash whenever that repo is checked out beside the platform repo. A missing app repo is no longer an error. An app file that disagrees with the registered hash still is.
+- `build-schemas.ts` reads the mirror too, and its miss message names both paths it tried.
+- The version-bump gate exempts the whole `02-contracts/extensions/` folder, not only the registry. The mirrors are registration artefacts, not core contract.
+
+### Added
+
 - `check-adoption.ts --write`. It regenerates section 1 of the impact matrix from the manifest and the adoption records, between two markers. The matrix is now genuinely generated instead of claiming to be.
 - `07-guides/firebase-getting-started.md`. Firebase from zero, for a teammate who has never used it. The tool install matrix per stack, the eight steps in order, the emulator, the first Firebase code per stack, the secret protocol, and the eight failures a newcomer will hit.
 - `07-guides/publishing-a-contract-change.md`. The handoff between the platform repo and the three app repos. Compose, sync one app, let it adopt, refresh the matrix. One step per repo, and the reverse direction for when an app finds a problem.

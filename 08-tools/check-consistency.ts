@@ -13,8 +13,10 @@
 //   5. every entry has explainedIn pointing at a file that exists under
 //      06-changes/
 //   6. every registry entry has a "source" shaped
-//      <app>/.contract/extensions/<app>.json, an "app" matching the key, and,
-//      when the file is visible in this checkout, a matching hash
+//      <app>/.contract/extensions/<app>.json, a "mirror" shaped
+//      02-contracts/extensions/<app>.json, an "app" matching the key, and a
+//      hash that matches the mirror and, when the app repo is visible, the
+//      app's own file
 //
 // With no 06-changes/manifest.json yet this prints
 // "manifest consistent (no manifest yet)" and exits 0.
@@ -56,6 +58,10 @@ const PRIORITIES = new Set(['P0', 'P1', 'P2', 'P3', 'P4']);
 
 function errorText(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause);
+}
+
+function sha256(text: string): string {
+  return `sha256:${createHash('sha256').update(text).digest('hex')}`;
 }
 
 function changeKind(field: JsonObject): string {
@@ -210,48 +216,94 @@ async function main(): Promise<void> {
         errors.push(`registry.json: entry "${app}" declares app ${JSON.stringify(entryRaw['app'])}, which does not match the key`);
       }
 
-      // The registry enforces the app's file by hash. That only works when
-      // the app repo is checked out next to the platform repo.
-      const sourcePath = path.resolve(MONOREPO_ROOT, expectedSource);
-      let fileText: string;
-      try {
-        fileText = await readFile(sourcePath, 'utf8');
-      } catch {
-        errors.push(`registry.json: the extension file for "${app}" is not visible at ${sourcePath}`);
-        continue;
-      }
-      let extDoc: Json;
-      try {
-        extDoc = JSON.parse(fileText) as Json;
-      } catch {
-        errors.push(`registry.json: the extension file for "${app}" is not valid JSON`);
-        continue;
-      }
-      if (isJsonObject(extDoc) && extDoc['app'] !== undefined && extDoc['app'] !== app) {
-        errors.push(`registry.json: the extension file for "${app}" declares app ${JSON.stringify(extDoc['app'])}`);
+      // The mirror is the platform's registered copy and lives inside this
+      // repo, so it is always readable, even on a bare CI checkout. The app's
+      // own file is only checked for drift when the app repo is visible.
+      const expectedMirror = `02-contracts/extensions/${app}.json`;
+      const mirror = entryRaw['mirror'];
+      let mirrorPath: string;
+      if (typeof mirror !== 'string' || mirror.length === 0) {
+        errors.push(`registry.json: "${app}" mirror must be a non-empty string, got ${JSON.stringify(mirror ?? null)}`);
+        mirrorPath = path.resolve(REPO_ROOT, expectedMirror);
+      } else {
+        if (mirror !== expectedMirror) {
+          errors.push(`registry.json: "${app}" mirror must be "${expectedMirror}", got ${JSON.stringify(mirror)}`);
+        }
+        mirrorPath = path.resolve(REPO_ROOT, mirror);
       }
 
-      // The registry's "extends" list must match the file's own "extends"
-      // keys. Otherwise the registry is a summary that can drift from the
-      // thing it summarizes, and a reader trusts the summary.
-      const registeredExtends = asArray(entryRaw['extends'] ?? [], `registry.json "${app}" extends`);
-      if (isJsonObject(extDoc)) {
-        const fileExtends = extDoc['extends'];
-        const fileKeys = isJsonObject(fileExtends) ? Object.keys(fileExtends).sort() : [];
-        const listed = registeredExtends
-          .filter((item): item is string => typeof item === 'string')
-          .slice()
-          .sort();
-        if (listed.join(',') !== fileKeys.join(',')) {
-          errors.push(`registry.json: "${app}" extends [${listed.join(', ')}] does not match the extension file's collections [${fileKeys.join(', ')}]`);
+      let mirrorText: string | undefined;
+      try {
+        mirrorText = await readFile(mirrorPath, 'utf8');
+      } catch {
+        errors.push(`registry.json: the registered mirror for "${app}" is not visible at ${mirrorPath}`);
+      }
+
+      let extDoc: Json | undefined;
+      if (mirrorText !== undefined) {
+        try {
+          extDoc = JSON.parse(mirrorText) as Json;
+        } catch {
+          errors.push(`registry.json: the mirror for "${app}" is not valid JSON`);
+        }
+      }
+
+      if (extDoc !== undefined) {
+        if (!isJsonObject(extDoc)) {
+          errors.push(`registry.json: the mirror for "${app}" must be a JSON object`);
+        } else {
+          if (extDoc['app'] !== undefined && extDoc['app'] !== app) {
+            errors.push(`registry.json: the mirror for "${app}" declares app ${JSON.stringify(extDoc['app'])}`);
+          }
+
+          // The registry entry and the mirror must agree on the version, or a
+          // reader trusts a version the app did not release.
+          if (extDoc['extensionVersion'] !== entryRaw['extensionVersion']) {
+            errors.push(`registry.json: "${app}" extensionVersion mismatch, registered ${JSON.stringify(entryRaw['extensionVersion'] ?? null)}, mirror ${JSON.stringify(extDoc['extensionVersion'] ?? null)}`);
+          }
+
+          // The registry's "extends" list must match the mirror's own "extends"
+          // keys. Otherwise the registry is a summary that can drift from the
+          // thing it summarizes, and a reader trusts the summary.
+          const registeredExtends = asArray(entryRaw['extends'] ?? [], `registry.json "${app}" extends`);
+          const fileExtends = extDoc['extends'];
+          const fileKeys = isJsonObject(fileExtends) ? Object.keys(fileExtends).sort() : [];
+          const listed = registeredExtends
+            .filter((item): item is string => typeof item === 'string')
+            .slice()
+            .sort();
+          if (listed.join(',') !== fileKeys.join(',')) {
+            errors.push(`registry.json: "${app}" extends [${listed.join(', ')}] does not match the extension file's collections [${fileKeys.join(', ')}]`);
+          }
         }
       }
 
       const hash = entryRaw['hash'];
-      if (typeof hash === 'string' && hash.startsWith('sha256:')) {
-        const actual = `sha256:${createHash('sha256').update(fileText).digest('hex')}`;
-        if (actual !== hash) {
-          errors.push(`registry.json: "${app}" hash mismatch, registered ${hash}, actual ${actual}`);
+      const registeredHash = typeof hash === 'string' && hash.startsWith('sha256:') ? hash : undefined;
+
+      // The mirror is what the contract tools read, so its hash is the main
+      // check.
+      if (registeredHash !== undefined && mirrorText !== undefined) {
+        const actual = sha256(mirrorText);
+        if (actual !== registeredHash) {
+          errors.push(`registry.json: "${app}" mirror hash mismatch, registered ${registeredHash}, actual ${actual}`);
+        }
+      }
+
+      // The app's file is the source of truth. When the app repo is checked out
+      // next to the platform repo, its bytes must still match the registration.
+      // A missing app repo is the normal CI case, so it is not an error.
+      const appSource = typeof source === 'string' && source.length > 0 ? source : expectedSource;
+      let appText: string | undefined;
+      try {
+        appText = await readFile(path.resolve(MONOREPO_ROOT, appSource), 'utf8');
+      } catch {
+        appText = undefined;
+      }
+      if (registeredHash !== undefined && appText !== undefined) {
+        const actual = sha256(appText);
+        if (actual !== registeredHash) {
+          errors.push(`registry.json: "${app}" app file hash mismatch, registered ${registeredHash}, actual ${actual}`);
         }
       }
     }

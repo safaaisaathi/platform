@@ -148,9 +148,11 @@ Full procedure: `./making-a-contract-change.md` section 4.6. Admin writes check 
 | Item | Value |
 |---|---|
 | When | An app added or changed its own extension file and needs it recognized |
-| Who | The app owner opens the issue. The platform owner harness edits the registry |
-| Files | `02-contracts/extensions/registry.json` only |
-| CI | `check-consistency.ts` recomputes the app's extension hash and compares it to the registry |
+| Who | The app owner opens the issue. The platform owner harness mirrors and registers |
+| Files | `02-contracts/extensions/<app>.json` (the registered mirror) and `02-contracts/extensions/registry.json` |
+| CI | `check-consistency.ts` proves the mirror's hash and the app's file's hash both match the registry. `build-schemas.ts` recomposes |
+
+**Two files move together.** Copy the app's own file over `02-contracts/extensions/<app>.json` with `cp`, so the mirror is byte identical. Then compute the hash of that mirror and put it in the registry with the new `extensionVersion`. If only one of the two moves, the hash check fails.
 
 No core version bump. The other two apps are not notified. Full procedure: `../02-contracts/extensions/README.md` section 8.
 

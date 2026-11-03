@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "id": "driverapp-extension",
+  "title": "The Driver App Extension",
+  "description": "Fields that only the driver app uses. The driver app OWNS this file. The platform repo owns only the registration in 02-contracts/extensions/registry.json, and enforces this file by its sha256 hash.",
+  "app": "driverapp",
+  "extensionVersion": "1",
+  "extends": {
+    "trip": {
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "A copy of the Firestore document id, written by the driver app when it creates a trip. The driver app's Trip model is a round-trip shape, so the id has to survive a write and a read."
+        }
+      }
+    }
+  },
+  "x-rules": {
+    "additionsOnly": "An extension may only ADD a field. It may never change a core field's type or meaning.",
+    "notRequired": "An extension may not add a required field. A required field changes the shape for every reader.",
+    "collectionKeyIsSingular": "The key under extends is the schema file's base name, singular. trip, not trips.",
+    "bumpVersion": "Bump extensionVersion when this file changes, then ask the platform owner to re-register it. The core contract version does not move."
+  },
+  "x-note": "trips.id is redundant with the document id. Every reader already gets the document id from the snapshot. It is registered here so the tightened rules and the composed schema accept the driver's current write path. Dropping it from the write path is a known follow-up, not a blocker for this registration."
+}

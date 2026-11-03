@@ -41,7 +41,7 @@ see_also:
 | 3 | **NEVER** bump `VERSION` in the same commit as an unrelated edit |
 | 4 | **NEVER** edit `06-changes/manifest.json` alone. It and its `CHG-*.md` file change together |
 | 5 | **NEVER** mark a change as adopted on behalf of an app. Adoption is that app's own CI, from its own PR |
-| 6 | **NEVER** edit an app's extension file. It lives in that app's repo. The platform registers it, the app owns it |
+| 6 | **NEVER** edit an app's extension file. It lives in that app's repo. The platform holds a registered mirror at `02-contracts/extensions/<app>.json` and a registration in `registry.json`. The app owns the file |
 | 7 | **NEVER** merge. A human merges. You draft |
 | 8 | **NEVER** deploy. Deployment is a human action |
 | 9 | **NEVER** put a secret in this repo. A Firebase client API key is not a secret. A service account key is |

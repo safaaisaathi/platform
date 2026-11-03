@@ -104,13 +104,13 @@ see_also:
 
 **An extension change is not a core version bump.** An app's extension version moves on its own. See `extensions/README.md`.
 
-### 5.1 The two files inside `02-contracts/` that do NOT bump the version
+### 5.1 The two places inside `02-contracts/` that do NOT bump the version
 
 **The CI gate knows about these two exceptions.** A pull request that touches only them passes the version-bump check without a `VERSION` change.
 
-| File | Why it is exempt | What moves instead |
+| Place | Why it is exempt | What moves instead |
 |---|---|---|
-| `02-contracts/extensions/registry.json` | It is a **registration**, not a contract change. It records which app owns which extension, and at which hash | The app's `extensionVersion`, in the registry and in the app's own `.contract/adopted.json` |
+| `02-contracts/extensions/**` | It is the **extension model**, not the core contract. It holds the registry, the registered mirrors of the app-owned extension files, and the README that explains them | The app's `extensionVersion`, in the registry and in the app's own `.contract/adopted.json` |
 | `02-contracts/collections/.composed/**` | It is **generated**. `08-tools/build-schemas.ts` writes it from the core schemas plus the registered extensions | Nothing. It is rebuilt and committed in the same PR |
 
 **Everything else in `02-contracts/` is core.** A field added to `collections/trip.schema.json` is a MINOR bump. A field removed from it is a MAJOR bump. There is no third case.
@@ -118,6 +118,8 @@ see_also:
 **Why the exemption exists.** If registering an extension forced a core version bump, all three apps would get a version-bump pull request for a change that affects one of them. The team would learn to ignore the bump pull request, and then ignore the real one. **The signal has to mean something.**
 
 **The gate that replaces the review.** The registry's sha256 hash. The app edits its extension file, the hash stops matching, and CI fails until the platform owner re-registers it. The version bump is not the enforcement. The hash is.
+
+**The mirror is not a second source of truth.** `02-contracts/extensions/<app>.json` is a byte copy of the app's own file. It exists so the contract can be validated, composed and released without the three app repos being checked out beside it. The hash in the registry proves the copy is the same file, and the consistency check compares the copy with the app's file whenever the app repo IS present.
 
 ## 6. The migration requirement
 

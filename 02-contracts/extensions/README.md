@@ -1,10 +1,10 @@
 ---
 id: extensions-readme
 title: The Extension Model
-status: frozen
+status: active
 owner: platform-owner
-updated: 2026-11-01
-contractVersion: "1.0.0"
+updated: 2026-11-03
+contractVersion: "2.0.0"
 audience: harness
 see_also:
   - ./registry.json
@@ -33,17 +33,28 @@ One line. It decides every case.
 
 ## 2. Where an extension file lives
 
-**In the app's own repo.** Not in the platform repo.
+**The app owns the file. The platform holds a registered mirror of it.**
 
 ```
 driverapp/.contract/extensions/driverapp.json      ← the driver app OWNS this
 adminpanel/.contract/extensions/adminpanel.json    ← the admin panel OWNS this
 userapp/.contract/extensions/userapp.json          ← the user app OWNS this
 
-platform/02-contracts/extensions/registry.json     ← the platform owns the REGISTRATION only
+platform/02-contracts/extensions/registry.json     ← the platform owns the REGISTRATION
+platform/02-contracts/extensions/driverapp.json    ← the platform's registered MIRROR
+platform/02-contracts/extensions/userapp.json      ← the platform's registered MIRROR
 ```
 
 **The app edits its extension freely.** The platform owner registers it once, and from then on the app keeps editing it without asking.
+
+**Why the mirror exists.** The contract has to be validated, composed and released without the three app repos being checked out beside it. On a CI runner only the platform repo is present. Without the mirror, every tool that needs an extension's field names would fail, and the contract could not be released on its own.
+
+**The mirror is a byte copy, not a second source of truth.** The app's file is the truth. The registry's `hash` is the sha256 of those bytes, and `08-tools/check-consistency.ts` proves the copy is the same file. When the app repo IS checked out beside the platform repo, the check also compares the app's file against the same hash, so drift on either side is caught.
+
+| Where the check runs | What it proves |
+|---|---|
+| The mirror only | The registered copy is the one the registry describes |
+| The mirror and the app's file | The app's file has not drifted from the registration |
 
 ## 3. The extension file format
 
@@ -81,6 +92,7 @@ platform/02-contracts/extensions/registry.json     ← the platform owns the REG
       "app": "driverapp",
       "extensionVersion": "1",
       "source": "driverapp/.contract/extensions/driverapp.json",
+      "mirror": "02-contracts/extensions/driverapp.json",
       "hash": "sha256:a56cdec5...",
       "extends": ["trip"],
       "registeredAt": "2026-11-02"
@@ -96,11 +108,12 @@ platform/02-contracts/extensions/registry.json     ← the platform owns the REG
 | `app` | The owning app, again. Optional, but it is checked when present |
 | `extensionVersion` | The app's extension version at the time of registration |
 | `source` | The path to the app's file, relative to the folder that holds the platform repo and the app repos side by side |
-| `hash` | `sha256:` plus the hex digest of the app's file, byte for byte |
+| `mirror` | The path to the platform's registered copy, relative to the platform repo root. Always `02-contracts/extensions/<app>.json` |
+| `hash` | `sha256:` plus the hex digest of the file's bytes, byte for byte. The mirror's hash and the app's file's hash must both equal it |
 | `extends` | The collection keys the app extends. It must match the file's own `extends` keys |
 | `registeredAt` | The date the registration was made |
 
-**The hash is the enforcement.** `08-tools/check-consistency.ts` recomputes the hash of the app's extension file and compares it. If they differ, the app changed its extension without re-registering, and CI fails.
+**The hash is the enforcement.** `08-tools/check-consistency.ts` recomputes the hash of the mirror and compares it. If they differ, the registration is broken, and CI fails. When the app's own repo is checked out beside the platform repo, it also recomputes the hash of the app's file and compares it to the same value. If they differ, the app changed its extension without re-registering, and CI fails.
 
 **The `extends` list is checked too.** A registry that lists a collection the file does not extend is a summary that has drifted from the thing it summarizes, and a reader trusts the summary.
 
@@ -113,7 +126,7 @@ platform/02-contracts/extensions/registry.json     ← the platform owns the REG
 
 **Why this matters.** If every app's extension change bumped the core version, all three apps would get a version bump PR for a change that affects none of them. The team would learn to ignore the bump PR, and then ignore the real one.
 
-**The CI gate knows the difference.** A pull request that touches only `registry.json` and the generated composed schemas does NOT need a `VERSION` bump. See `../severity-policy.md` section 5.1.
+**The CI gate knows the difference.** A pull request that touches only the `02-contracts/extensions/` folder and the generated composed schemas does NOT need a `VERSION` bump. See `../severity-policy.md` section 5.1.
 
 **The change log has two kinds of entry.**
 
@@ -140,7 +153,7 @@ platform/02-contracts/extensions/registry.json     ← the platform owns the REG
 enums.json ──────────────┐
                          ├──> build-schemas.ts ──> composed schema (strict)
 collections/*.schema.json┘                            │
-extensions/<app>.json ────────────────────────────────┘
+extensions/<app>.json ────────────────────────────────┘   (the registered mirror)
 ```
 
 The composed schema uses `allOf` with `unevaluatedProperties: false`. A field that is in neither the core nor a registered extension is **rejected**.
@@ -154,10 +167,11 @@ The composed schema uses `allOf` with `unevaluatedProperties: false`. A field th
 | 1 | The app owner | Add the field to the app's own extension file |
 | 2 | The app owner | Bump the app's `extensionVersion` |
 | 3 | The app owner | Open an issue in the platform repo: "register extension for `<app>`" |
-| 4 | The platform owner | Update `registry.json` with the new hash and version |
-| 5 | CI | `check-consistency.ts` verifies the hash matches |
-| 6 | CI | `build-schemas.ts` regenerates the composed schema |
-| 7 | The app owner | Update the app's `adopted.json` with the new extension version |
+| 4 | The platform owner | Copy the app's file over `02-contracts/extensions/<app>.json`. Recompute the hash. Update `registry.json` with the new hash, the version and the mirror path |
+| 5 | The platform owner | Run `node 08-tools/build-schemas.ts` and commit the regenerated composed schemas |
+| 6 | CI | `check-consistency.ts` verifies the mirror's hash, and the app's file's hash when the app repo is present |
+| 7 | CI | `build-schemas.ts` regenerates the composed schema and the gate checks it was committed |
+| 8 | The app owner | Update the app's `adopted.json` with the new extension version |
 
 **No core version bump happens at any step.** The other two apps are not notified, because they are not affected.
 

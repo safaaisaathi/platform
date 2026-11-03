@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "id": "userapp-extension",
+  "title": "The User App Extension",
+  "description": "Fields that only the user app uses. The user app OWNS this file. The platform repo owns only the registration in 02-contracts/extensions/registry.json, and enforces this file by its sha256 hash.",
+  "app": "userapp",
+  "extensionVersion": "1",
+  "extends": {
+    "collectionFeedback": {
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "A copy of the Firestore document id. The user app's feedback object is a round-trip shape, so the id has to survive a write and a read."
+        },
+        "reason": {
+          "type": "string",
+          "description": "The citizen's free text about the missed collection. Optional."
+        },
+        "note": {
+          "type": "string",
+          "description": "The citizen's free text. Optional."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When the citizen gave the feedback."
+        },
+        "syncStatus": {
+          "type": "string",
+          "enum": ["synced", "pending_sync"],
+          "description": "The user app's own sync bookkeeping. It is a hint for the app's UI, not a fact about the collection."
+        }
+      }
+    }
+  },
+  "x-rules": {
+    "additionsOnly": "An extension may only ADD a field. It may never change a core field's type or meaning.",
+    "notRequired": "An extension may not add a required field. A required field changes the shape for every reader.",
+    "collectionKeyIsSingular": "The key under extends is the schema file's base name, singular. trip, not trips.",
+    "bumpVersion": "Bump extensionVersion when this file changes, then ask the platform owner to re-register the hash."
+  }
+}

@@ -6,7 +6,7 @@
 
 ## [Unreleased]
 
-Nothing pending.
+Nothing pending in the manifest. The extension registry gained a `mirror` path and the platform now holds a byte copy of each app-owned extension file, so a bare CI checkout can validate and compose the contract. No change entry, because no app has to act and no core shape moved.
 
 ## [2.0.0] - 2026-11-03
 

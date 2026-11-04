@@ -116,7 +116,7 @@ node 08-tools/export-ts-constants.ts . --out 04-functions/src/generated/constant
 git diff --exit-code -- 04-functions/src/generated/constants.ts                         # it did not drift
 ```
 
-**`npm test` needs Node 22.6 or newer**, because it uses Node's own type stripping. The deployed runtime is Node 20, which is why `engines.node` stays at 20. The build itself works on Node 20.
+**`npm test` needs Node 22.6 or newer**, because it uses Node's own type stripping. The deployed runtime is Node 22, from `04-functions/package.json` `engines.node`. Node 20 was decommissioned on 2026-10-30, so a deploy on it fails with "Runtime Node.js 20 was decommissioned".
 
 ## 7. Report format
 

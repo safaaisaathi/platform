@@ -17,7 +17,7 @@ see_also:
 
 **This folder is the machine's own tooling.** Every claim in this repo ("who is affected", "is the contract broken", "who has not adopted") is checked here, by code, not by opinion.
 
-The scripts are TypeScript run directly by Node's type stripping (Node 20+, tested on 26). No build step. They resolve the platform repo from their own file location, so they run from any working directory.
+The scripts are TypeScript run directly by Node's type stripping (Node 22.6+, tested on 26). No build step. They resolve the platform repo from their own file location, so they run from any working directory.
 
 **Two of them are Python**, because they check markdown rather than data: `check-tables.py` and `check-links.py`. Python 3.10 or newer. No packages to install.
 

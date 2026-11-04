@@ -94,9 +94,9 @@ see_also:
 |---|---|---|---|
 | **Flutter, Android** | driverapp | Flutter SDK with Dart 3.13 or newer, the driver app runs Flutter 3.47.7 and Dart 3.13.5. Android Studio and the Android SDK. `firebase-tools` via npx. The FlutterFire CLI. The Dart packages `firebase_core`, `firebase_auth`, `cloud_firestore`, `cloud_functions`, `firebase_messaging` | `firebase-admin` |
 | **Flutter, Android and iOS** | userapp | The same, plus Xcode and CocoaPods | `firebase-admin` |
-| **React or Next.js, web** | adminpanel | Node 20 or newer, `firebase-tools` via npx, and the npm package `firebase` | `firebase-admin` in client code |
-| **Cloud Functions, TypeScript** | the platform's `04-functions/` | Node 20, plus the npm packages `firebase-admin` and `firebase-functions` | Nothing extra |
-| **Only reading the contract** | any | Node 20. That is the whole list | Everything |
+| **React or Next.js, web** | adminpanel | Node 22.6 or newer, `firebase-tools` via npx, and the npm package `firebase` | `firebase-admin` in client code |
+| **Cloud Functions, TypeScript** | the platform's `04-functions/` | Node 22, plus the npm packages `firebase-admin` and `firebase-functions`. The deployed runtime is Node 22: Node 20 was decommissioned on 2026-10-30 | Nothing extra |
+| **Only reading the contract** | any | Node 22.6 or newer. That is the whole list | Everything |
 
 **Flutter steps.** Each command says what it does. Run them in this order.
 

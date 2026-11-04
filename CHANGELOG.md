@@ -34,6 +34,7 @@ see_also:
 
 ### Fixed
 
+- `04-functions` now targets the Node 22 runtime. Node 20 was decommissioned on 2026-10-30, so every `firebase deploy` failed with "Runtime Node.js 20 was decommissioned". `engines.node` is 22, which is also what CI already runs.
 - `check-conflicts.ts` maps a subcollection name (`trail`, `receipts`) to its schema file, so a contract-correct trail write is no longer a false `UNKNOWN COLLECTION`. It also accepts a field that belongs to either side of a parent/subcollection tree, because the per-file scanner cannot tell the two apart.
 - `x-writes` corrected in `trip`, `van`, `route` and `ward`.
 - CHG-0006's migration step now deletes the app's own `functions/` deployment, not the `cloud_functions` dependency, which CHG-0003's callables need.

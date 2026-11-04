@@ -280,7 +280,7 @@ npm test
 
 **Node's own test runner. No jest, no vitest, no mocha.**
 
-**`npm test` needs Node 22.6 or newer**, because it uses Node's type stripping. The deployed runtime stays at Node 20, which is why `engines.node` is 20. The build itself works on Node 20.
+**`npm test` needs Node 22.6 or newer**, because it uses Node's type stripping. The deployed runtime is Node 22, from `engines.node`. Node 20 was decommissioned on 2026-10-30, so a deploy on it now fails with "Runtime Node.js 20 was decommissioned".
 
 | File | What it proves |
 |---|---|

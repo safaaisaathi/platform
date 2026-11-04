@@ -10,7 +10,7 @@
     "test": "node --experimental-strip-types --test 'test/*.test.ts'"
   },
   "engines": {
-    "node": "20"
+    "node": "22"
   },
   "main": "lib/index.js",
   "dependencies": {

@@ -102,8 +102,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           # Node 22.6 or newer, because `npm test` runs the Node test runner
-          # over TypeScript and needs Node's type stripping. The deployed
-          # runtime is still Node 20. See 04-functions/package.json engines.
+          # over TypeScript and needs Node's type stripping. That is also the
+          # deployed runtime now: Node 20 was decommissioned on 2026-10-30.
+          # See 04-functions/package.json engines.
           node-version: 22
 
       - name: Install

@@ -4,7 +4,7 @@ title: Driver App Harness Brief
 status: active
 owner: platform-owner
 updated: 2026-11-02
-contractVersion: "2.0.0"
+contractVersion: "2.1.0"
 audience: harness
 see_also:
   - ./README.md
@@ -42,6 +42,8 @@ see_also:
 | `check-conflicts.ts` reports **7 conflicts, worst P0** | Platform tooling |
 
 **The app is not broken. It is unwired.** The writes work today because the deployed rules only ask "is somebody signed in".
+
+**Two platform issues this app raised are now fixed.** The false `UNKNOWN COLLECTION "trail"` (issue #2) is gone: the scanner resolves a subcollection name to its schema file. The missing mock-location write path (issue #1) is a callable now, `flagMockLocation`, CHG-0017. After CHG-0005 and CHG-0017, `check-conflicts.ts --app driverapp` must reach zero conflicts.
 
 ---
 
@@ -100,7 +102,7 @@ node ../platform/08-tools/sync-contract.ts .
 
 | # | Change | What to do | The acceptance check |
 |---|---|---|---|
-| 1 | **CHG-0006** | Delete `functions/` entirely. Delete the `cloud_functions` dependency from `pubspec.yaml`. Delete `functions/.env` from the repo | `grep -rn 'verifyDriverPin\|setDriverPin\|vanSecrets\|DEMO_SEED_BYPASS' lib/ functions/ scripts/ pubspec.yaml` gives zero hits. `functions/` does not exist |
+| 1 | **CHG-0006** | Delete the app's own `functions/` deployment entirely. Delete `functions/.env` from the repo. **Keep the `cloud_functions` dependency in `pubspec.yaml`**: CHG-0003's callables need it to call anything | `grep -rn 'verifyDriverPin\|setDriverPin\|vanSecrets\|DEMO_SEED_BYPASS' lib/ functions/ scripts/ pubspec.yaml` gives zero hits. `functions/` does not exist |
 | 2 | **CHG-0009** | Confirm no backend copy is left | `grep -rn 'onCall\|onWrite\|onSchedule' lib/` gives zero hits |
 | 3 | **CHG-0008** | Point every Firebase config at `safaaisaathi-63a87`. Remove the `driver-app-demo` and `test-project` names. No hardcoded fallback | `grep -rn 'driver-app-demo\|test-project' lib/ test/` gives zero hits |
 | 4 | **CHG-0003** | Call `bindDeviceToVan({ driverCode, installId })` at sign-in, then `signInWithCustomToken`. The token carries `vanId` and `driverId`. **No silent fallback to anonymous** | The session's claims contain `vanId` and `driverId`. A failed bind shows the localized reason code |
@@ -110,6 +112,7 @@ node ../platform/08-tools/sync-contract.ts .
 | 8 | **CHG-0010** | Widen the complaint status type to the seven contract values | The type matches `enums.json` `$defs/complaint.status` |
 | 9 | **CHG-0005** | Write the trail to `trips/{id}/trail/{n}`, chunks of 1000. Stop writing `trips.gpsTrail` | No write to `gpsTrail` remains |
 | 10 | **CHG-0012** | The app must not read `complaints.phone`, `complaints.assignedPhone` or `complaints.escalatedToPhone`. They no longer exist | `grep -rn 'assignedPhone\|escalatedToPhone' lib/` gives zero hits |
+| 11 | **CHG-0017** | Call `flagMockLocation({ tripId })` where the tracking engine latches the mock flag. Do not write `trips.mockLocationDetected` directly. The strict rules deny every client trip write, so the server sets the latch | No direct `mockLocationDetected` write remains. The call is `httpsCallable('flagMockLocation')`. The banner stays local and works offline |
 
 ### 4.3 The reason codes the app must handle
 
@@ -132,7 +135,7 @@ node ../platform/08-tools/sync-contract.ts .
 | The write | The scope comes from |
 |---|---|
 | `vans/{vanId}` telemetry | The `vanId` claim. **Never from a form field** |
-| `trips/{tripId}` | The `vanId` claim, and the `currentTripId` claim |
+| `trips/{tripId}` | **Reads only. The server writes the trip.** `startShift`, `endShift`, `markWardDone` and `flagMockLocation` are the only writers |
 | `trips/{tripId}/trail/{n}` | The `vanId` claim |
 | `complaints/{id}` two fields | The trip scope. The `wardIds` snapshot on the trip |
 | `notices/{id}/receipts/{driverCode}` | The `driverId` claim |
@@ -145,7 +148,7 @@ node ../platform/08-tools/sync-contract.ts .
 
 ```json
 {
-  "contractVersion": "2.0.0",
+  "contractVersion": "2.1.0",
   "extensionVersion": "1",
   "coreChanges": {
     "CHG-0006": {
@@ -154,7 +157,7 @@ node ../platform/08-tools/sync-contract.ts .
       "progress": 0,
       "checklist": [
         { "task": "Delete the functions/ folder", "done": false },
-        { "task": "Delete the cloud_functions dependency from pubspec.yaml", "done": false },
+        { "task": "Delete the app's own functions/ deployment, keeping the cloud_functions dependency", "done": false },
         { "task": "Delete functions/.env from the repo", "done": false }
       ],
       "verifiedBy": "08-tools/check-adoption.ts"
@@ -170,7 +173,7 @@ node ../platform/08-tools/sync-contract.ts .
 ### 4.6 Bump the version pin
 
 ```bash
-node ../platform/08-tools/bump-contract.ts . --contract-version=2.0.0
+node ../platform/08-tools/bump-contract.ts . --contract-version=2.1.0
 ```
 
 **The target is the manifest entry's `contractVersion.to`.** Read it out of `../platform/06-changes/manifest.json`. Never one you remember.

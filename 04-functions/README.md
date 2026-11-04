@@ -4,7 +4,7 @@ title: The Functions Folder
 status: active
 owner: platform-owner
 updated: 2026-11-03
-contractVersion: "2.0.0"
+contractVersion: "2.1.0"
 audience: harness
 see_also:
   - ./src/index.ts
@@ -23,7 +23,7 @@ see_also:
 
 | File | What it is |
 |---|---|
-| `src/index.ts` | The deployment entry point. It exports the 22 functions and nothing else |
+| `src/index.ts` | The deployment entry point. It exports the 23 functions and nothing else |
 | `src/callables/identity.ts` | `bindDeviceToVan`, `bootstrapUserSession`, `mintStaffToken` |
 | `src/callables/shift.ts` | `startShift`, `endShift`, `markWardDone` |
 | `src/callables/admin.ts` | `setComplaintStatus`, `publishNotice`, `upsertDriver`, `upsertStaff`, `setVanDepot` |
@@ -64,7 +64,7 @@ see_also:
 
 ## 3. The current state
 
-**All 22 functions exist and the build is clean.**
+**All 23 functions exist and the build is clean.**
 
 | Group | Count | Where |
 |---|---|---|
@@ -73,6 +73,7 @@ see_also:
 | Admin-write callables | 5 | `src/callables/admin.ts` |
 | Citizen callables | 2 | `src/callables/complaints.ts` |
 | Ward duty callables | 2 | `src/callables/wardDuty.ts` |
+| Tracking callables | 1 | `src/callables/tracking.ts` |
 | Firestore triggers | 2 | `src/triggers/` |
 | Scheduled sweeps | 4 | `src/scheduled/` |
 | Webhooks | 1 | `src/webhooks/` |
@@ -85,11 +86,11 @@ grep -rn "verifyDriverPin\|setDriverPin\|vanSecrets\|DEMO_SEED_BYPASS" src/
 
 **Zero hits.** That is the whole acceptance criterion.
 
-## 4. The 22 functions
+## 4. The 23 functions
 
 **Their contracts are in `../02-contracts/callables.json`.** That file is the specification. This folder is the implementation. **Every one of them now carries `lifecycle: implemented`.**
 
-### The 15 callables
+### The 16 callables
 
 | Callable | Called by | The decision it makes |
 |---|---|---|
@@ -99,6 +100,7 @@ grep -rn "verifyDriverPin\|setDriverPin\|vanSecrets\|DEMO_SEED_BYPASS" src/
 | `startShift` | driverapp | Creates the trip and sets the open-trip marker, atomically |
 | `endShift` | driverapp | Closes the trip and clears the marker |
 | `markWardDone` | driverapp | Records a ward as collected, scoped to the trip's snapshot. **Writes the duty board** |
+| `flagMockLocation` | driverapp | Sets the one-way mock-location latch on the caller's own open trip. **The trip is server-owned, so the flag cannot be a client write** |
 | `setComplaintStatus` | adminpanel | Resolves, assigns or escalates a complaint |
 | `publishNotice` | adminpanel | Sends a notice to a van, a ward or everyone |
 | `upsertDriver` | adminpanel | Creates or updates a driver. **Masks the phone on the way in** |

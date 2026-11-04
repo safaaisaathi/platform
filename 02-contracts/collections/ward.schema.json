@@ -5,7 +5,7 @@
   "description": "The citizen's geography. A ward has a centre and a radius. The user app resolves its own ward by which ward's circle contains it, or by a manual picker. PRD-2 section 3.3.",
   "type": "object",
   "x-docId": "ward-1",
-  "x-writes": ["adminpanel via setVanDepot-adjacent staff callables", "platform owner in the console"],
+  "x-writes": ["adminpanel: district staff only, direct write", "platform owner in the console"],
   "x-reads": ["driverapp", "userapp", "adminpanel", "platform functions"],
   "properties": {
     "name": {

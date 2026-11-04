@@ -1,5 +1,5 @@
 // GENERATED FILE. DO NOT EDIT.
-// Source: 02-contracts/constants.json in the platform repo (contract version 2.0.0).
+// Source: 02-contracts/constants.json in the platform repo (contract version 2.1.0).
 // Regenerate with: node 08-tools/export-ts-constants.ts <path to this repo>
 
 // Every number and string that must match on both sides of a boundary.

@@ -81,7 +81,7 @@ see_also:
 |---|---|
 | Cloud Firestore | 18 collections. The entire data layer |
 | Authentication | Anonymous sign-in for the driver app and the user app, email for the admin panel. Custom claims carry the scope |
-| Cloud Functions | 22 functions in the contract. 15 callables and 7 server functions. All 22 are built in `../04-functions/` |
+| Cloud Functions | 23 functions in the contract. 16 callables and 7 server functions. All 23 are built in `../04-functions/` |
 | Cloud Messaging | 4 topics. `van_`, `ward_`, `staff_`, and `all` |
 | Hosting | The admin panel. Not deployed yet |
 | Emulator Suite | Local development. Auth on 9099, Firestore on 8080, Functions on 5001 |

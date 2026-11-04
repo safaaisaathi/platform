@@ -3,8 +3,8 @@ id: impact-matrix
 title: The Impact Matrix
 status: active
 owner: platform-owner
-updated: 2026-11-03
-contractVersion: "2.0.0"
+updated: 2026-11-05
+contractVersion: "2.1.0"
 audience: both
 see_also:
   - ./manifest.json
@@ -22,7 +22,7 @@ see_also:
 
 ## 1. The current state
 
-**Contract version**: `2.0.0`. That is the breaking release, and it is published. No app has adopted it yet.
+**Contract version**: `2.1.0`. `2.0.0` was the breaking release and it is published. `2.1.0` adds the `flagMockLocation` callable, an addition that blocks no app. No app has adopted `2.0.0` yet.
 
 <!-- BEGIN GENERATED: section-1 -->
 | Change | Sev | Pri | Driver | User | Admin | Deadline |
@@ -45,6 +45,7 @@ see_also:
 | [CHG-0015](CHG-0015-fix-the-prd-pointers.md) Fix the PRD pointers and compute the source hash | S2 | P3 | ⬜ 0% | ⬜ 0% | ⬜ 0% | none |
 | [CHG-0016](CHG-0016-the-user-app-stack-is-react.md) The user app's stack is React, not Flutter | S2 | P2 | n/a | ⬜ 0% | n/a | none |
 | [EXT-0002](EXT-0002-userapp-collection-feedback.md) The user app owns collectionFeedback | S3 | P4 | n/a | ⬜ 0% | n/a | none |
+| [CHG-0017](CHG-0017-the-mock-location-latch-is-a-callable.md) The mock-location latch is set by a callable, not a client trip write | S2 | P2 | ⬜ 0% | n/a | n/a | none |
 
 **Legend**: ✅ done. 🟡 in progress. ⬜ not started. n/a not affected.
 <!-- END GENERATED: section-1 -->

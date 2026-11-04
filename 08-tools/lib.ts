@@ -149,8 +149,37 @@ export function singularize(name: string): string {
   return name;
 }
 
-export function resolveCollectionName(name: string, known: ReadonlySet<string>): string | null {
+// Maps a subcollection's own name to the schema that documents it. A schema
+// with "x-path": "trips/{tripId}/trail/{chunkIndex}" is the trail schema, so
+// "trail" resolves to "trailChunk". Without this, an app that writes
+// collection('trail') is reported as touching an unknown collection, because
+// the schema file's base name is trailChunk, not trail.
+export function collectionAliases(
+  schemas: ReadonlyMap<string, JsonObject>
+): Map<string, string> {
+  const aliases = new Map<string, string>();
+  for (const [base, schema] of schemas) {
+    const xPath = schema['x-path'];
+    if (typeof xPath !== 'string') continue;
+    // The last path segment that is a literal name, not a {placeholder}.
+    const last = xPath
+      .split('/')
+      .reverse()
+      .find((segment) => segment.length > 0 && !segment.startsWith('{') && !segment.endsWith('}'));
+    if (last === undefined || last === base) continue;
+    if (!aliases.has(last)) aliases.set(last, base);
+  }
+  return aliases;
+}
+
+export function resolveCollectionName(
+  name: string,
+  known: ReadonlySet<string>,
+  aliases?: ReadonlyMap<string, string>
+): string | null {
   if (known.has(name)) return name;
+  const alias = aliases?.get(name);
+  if (alias !== undefined && known.has(alias)) return alias;
   const singular = singularize(name);
   if (singular !== name && known.has(singular)) return singular;
   return null;

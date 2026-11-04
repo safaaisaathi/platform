@@ -348,6 +348,57 @@
       },
       "outOfOrder": "Marks may be made out of order. Any undone ward counts, not only the next one."
     },
+    "flagMockLocation": {
+      "type": "https.onCall",
+      "lifecycle": "implemented",
+      "implementation": {
+        "source": "04-functions/src/callables/tracking.ts"
+      },
+      "calledBy": [
+        "driverapp"
+      ],
+      "purpose": "Set the durable mock-location latch on the caller's own open trip.",
+      "input": {
+        "tripId": {
+          "type": "string",
+          "required": true,
+          "note": "The caller's own open trip id."
+        }
+      },
+      "output": {
+        "flagged": {
+          "type": "boolean",
+          "note": "True when THIS call set the latch, false when the trip was already flagged. On any successful call the latch is true either way."
+        },
+        "flaggedAt": {
+          "type": "string",
+          "format": "date-time",
+          "note": "The server's time for THIS call, ISO 8601. The latch is a one-way boolean and stores no timestamp, so the time of the first call is not kept."
+        }
+      },
+      "reasonCodes": [
+        "notAuthorised",
+        "notFound",
+        "invalidState",
+        "invalidInput",
+        "internal"
+      ],
+      "authority": {
+        "reads": [
+          "trips/{tripId}"
+        ],
+        "writes": [
+          "trips/{tripId}"
+        ],
+        "scope": "The caller's driverId claim must match trips.driverId and the trip must be on_shift. Only trips.mockLocationDetected is written, and only ever to true.",
+        "reason": "Trips are server-owned. 03-rules/firestore.strict.rules denies every client write on trips/{tripId} except the trail subcollection, because a direct client write would let two phones create two trips for one shift. So the latch cannot be a client write."
+      },
+      "whyACallable": "Mock detection is device-side: only the phone's OS knows a fix is mocked, so only the client can decide to flag. But the trip document is server-owned, so the client cannot write the field directly. A callable carries the client's decision across the trust boundary: the server checks ownership, writes the latch, and enforces the one-way rule.",
+      "notLikeWorkerId": "CHG-0013 removed a client-supplied workerId because a forged value helped the caller by naming an arbitrary staff member. This input is the opposite: a forged flag only brands the caller's own trip as GPS-faked, so lying is against the caller's interest. The driverId still comes from the token, never from the input.",
+      "idempotent": "A second call on an already-flagged trip succeeds and writes nothing. No caller ever sets the latch back to false.",
+      "offline": "A callable cannot run offline. The in-app banner is local and always works. The app may retry the call when the network returns, and the retry is safe because the callable is idempotent.",
+      "followUp": "The flag is self-reported, so a driver who hides the mock is not caught. A scheduled trail-anomaly sweep (impossible speed, teleport) is the planned backstop and is not part of this change."
+    },
     "setComplaintStatus": {
       "type": "https.onCall",
       "lifecycle": "implemented",
@@ -1091,6 +1142,9 @@
       "startShift",
       "endShift",
       "markWardDone"
+    ],
+    "tamperFlags": [
+      "flagMockLocation"
     ],
     "citizenWrites": [
       "citizenVerifyResolution",

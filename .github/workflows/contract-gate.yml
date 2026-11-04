@@ -60,6 +60,10 @@ jobs:
         working-directory: 08-tools
         run: node --experimental-strip-types build-schemas.ts
 
+      - name: Check that x-writes agrees with the strict rules
+        working-directory: 08-tools
+        run: node --experimental-strip-types check-x-writes.ts
+
       - name: The composed schemas must be committed
         run: |
           if [ -n "$(git status --porcelain 02-contracts/collections/.composed/)" ]; then

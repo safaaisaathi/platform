@@ -4,7 +4,7 @@ title: The Guides Router
 status: active
 owner: platform-owner
 updated: 2026-11-03
-contractVersion: "2.0.0"
+contractVersion: "2.1.0"
 audience: harness
 see_also:
   - ../AGENTS.md

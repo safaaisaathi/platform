@@ -2,7 +2,7 @@
 //
 // The ONE deployment entry point for the Safai Saathi backend.
 //
-// There are 22 functions here. Fifteen are callables, the client asks for
+// There are 23 functions here. Sixteen are callables, the client asks for
 // them by name. Seven are server functions, they run on their own.
 //
 // The export name IS the Firebase function name. `exports.startShift` in the
@@ -33,6 +33,7 @@ export {
 } from './callables/admin';
 export { citizenVerifyResolution, reopenComplaint } from './callables/complaints';
 export { getWardDutyStatus, markWardDutyCompleted } from './callables/wardDuty';
+export { flagMockLocation } from './callables/tracking';
 
 // --- the server functions ----------------------------------------------------
 //

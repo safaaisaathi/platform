@@ -3,7 +3,7 @@
   "$id": "https://safaaisaathi.contracts/changes/adoption.json",
   "title": "Safai Saathi adoption record",
   "description": "Who has caught up with which change. Each app updates its own record in its own repo, in .contract/adopted.json. This file is the platform's aggregated view. It is a REPORT, not a source of truth. The truth is each app's own file.",
-  "generatedAt": "2026-11-03",
+  "generatedAt": "2026-11-05",
   "apps": {
     "driverapp": {
       "repo": "safaaisaathi/driverapp",
@@ -25,7 +25,8 @@
         "CHG-0013": { "status": "not_applicable", "progress": null, "note": "The admin panel and the user app own the complaint write." },
         "CHG-0014": { "status": "not_applicable", "progress": null, "note": "The admin panel owns the data layer." },
         "CHG-0015": { "status": "not_started", "progress": 0 },
-        "CHG-0016": { "status": "not_applicable", "progress": null, "note": "The user app's stack is the question." }
+        "CHG-0016": { "status": "not_applicable", "progress": null, "note": "The user app's stack is the question." },
+        "CHG-0017": { "status": "not_started", "progress": 0, "urgency": "scheduled" }
       },
       "extensionChanges": {
         "EXT-0001": { "status": "adopted", "progress": 1, "verifiedAt": "2026-11-02T00:00:00Z" }
@@ -51,7 +52,8 @@
         "CHG-0013": { "status": "not_started", "progress": 0, "urgency": "before_release" },
         "CHG-0014": { "status": "not_applicable", "progress": null, "note": "The admin panel owns the data layer." },
         "CHG-0015": { "status": "not_started", "progress": 0 },
-        "CHG-0016": { "status": "not_started", "progress": 0 }
+        "CHG-0016": { "status": "not_started", "progress": 0 },
+        "CHG-0017": { "status": "not_applicable", "progress": null, "note": "The driver app owns the mock-location latch." }
       },
       "extensionChanges": {
         "EXT-0002": { "status": "not_started", "progress": 0, "note": "The extension file is registered with the platform. The app has not adopted the change in code yet." }
@@ -76,7 +78,8 @@
         "CHG-0012": { "status": "not_started", "progress": 0, "urgency": "before_release" },
         "CHG-0013": { "status": "not_started", "progress": 0, "urgency": "before_release" },
         "CHG-0014": { "status": "not_started", "progress": 0 },
-        "CHG-0015": { "status": "not_started", "progress": 0 }
+        "CHG-0015": { "status": "not_started", "progress": 0 },
+        "CHG-0017": { "status": "not_applicable", "progress": null, "note": "The admin panel only reads the flag." }
       }
     }
   },

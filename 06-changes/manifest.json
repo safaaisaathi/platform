@@ -3,8 +3,8 @@
   "$id": "https://safaaisaathi.contracts/changes/manifest.json",
   "title": "Safai Saathi change manifest",
   "description": "The machine-readable list of every change to the contract. Each entry pairs with a CHG-nnn-*.md file in this folder. The two change together, never one alone.",
-  "contractVersion": "2.0.0",
-  "generatedAt": "2026-11-03",
+  "contractVersion": "2.1.0",
+  "generatedAt": "2026-11-05",
   "changes": [
     {
       "id": "CHG-0001",
@@ -176,7 +176,7 @@
           "Confirm the office does not call verifyDriverPin",
           "Delete the verifyDriverPin and setDriverPin functions",
           "Delete the DEMO_SEED_BYPASS path inside setDriverPin",
-          "Delete the cloud_functions dependency from pubspec.yaml",
+          "Delete the app's own functions/ deployment. Keep the cloud_functions pubspec dependency: CHG-0003 requires calling the platform's callables, and Flutter cannot call a callable without it",
           "Verify with: grep -rn 'verifyDriverPin|setDriverPin|vanSecrets|DEMO_SEED_BYPASS' lib/ functions/src/ scripts/. Zero hits"
         ],
         "deadline": "2026-11-15"
@@ -561,6 +561,40 @@
         "oldFieldWritableUntil": null
       },
       "explainedIn": "EXT-0002-userapp-collection-feedback.md",
+      "supersedes": null
+    },
+    {
+      "id": "CHG-0017",
+      "title": "The mock-location latch is set by a callable, not a client trip write",
+      "severity": "S2",
+      "priority": "P2",
+      "breaking": false,
+      "date": "2026-11-05",
+      "author": "platform-owner",
+      "contractVersion": { "from": "2.0.0", "to": "2.1.0" },
+      "affectedApps": [
+        "driverapp"
+      ],
+      "affectedCollections": [
+        "trips"
+      ],
+      "affectedFields": [],
+      "migration": {
+        "required": true,
+        "steps": [
+          "New callable flagMockLocation({ tripId }). It sets trips.mockLocationDetected = true on the caller's own open trip and returns { flagged, flaggedAt }",
+          "driverapp: replace the direct trips.mockLocationDetected write with a httpsCallable('flagMockLocation') call. The callable is in 04-functions/src/callables/tracking.ts",
+          "The callable never sets the field false. A second call on a flagged trip succeeds and writes nothing, so a retry is safe",
+          "The in-app banner stays local and offline-safe. The callable needs the network, so the app may retry it on reconnect",
+          "trip.schema.json x-writes no longer lists driverapp. The strict rules already denied the direct write"
+        ],
+        "deadline": null
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": null,
+        "oldFieldWritableUntil": null
+      },
+      "explainedIn": "CHG-0017-the-mock-location-latch-is-a-callable.md",
       "supersedes": null
     }
   ],

@@ -4,7 +4,7 @@ title: Safai Saathi Platform AGENTS
 status: active
 owner: platform-owner
 updated: 2026-11-03
-contractVersion: "2.0.0"
+contractVersion: "2.1.0"
 audience: harness
 see_also:
   - ../07-guides/README.md
@@ -61,6 +61,7 @@ see_also:
 | Write a change entry | `06-changes/templates/CHANGE-template.md`, `02-contracts/severity-policy.md` | Everything else |
 | Add or check a feature entry | `02-contracts/features/feature.schema.json`, `08-tools/check-features.ts` | The whole `09-reference/` |
 | Answer a question about the backend | `02-contracts/README.md`, then the one file it points to | The whole `09-reference/` |
+| Check what a schema claims about writes | That schema's `x-writes`, `03-rules/firestore.strict.rules`, `08-tools/check-x-writes.ts` | The other schemas |
 
 ## 4. Modes
 
@@ -94,9 +95,10 @@ node 08-tools/validate-contract.ts      # every schema is valid, every enum reso
 node 08-tools/check-consistency.ts       # the schema and the changelog agree
 node 08-tools/check-features.ts          # every feature entry is valid, every ref resolves
 node 08-tools/build-schemas.ts           # the composed schemas build. It also proves no extension redefines a core field
+node 08-tools/check-x-writes.ts          # every collection's x-writes header agrees with the strict rules
 ```
 
-All four must print their success line. A failure means the contract is broken, and nothing downstream can be trusted.
+All five must print their success line. A failure means the contract is broken, and nothing downstream can be trusted.
 
 **If you edited markdown, run these two as well.**
 
@@ -129,7 +131,7 @@ SEVERITY: <S0-S4>
 CHANGE ID: <CHG-nnn, or none>
 CHANGES ADOPTED: <the ids, or none>
 CHANGES PENDING: <the ids, or none>
-VALIDATION: validate-contract -> <pass/fail> | check-consistency -> <pass/fail> | check-features -> <pass/fail> | build-schemas -> <pass/fail>
+VALIDATION: validate-contract -> <pass/fail> | check-consistency -> <pass/fail> | check-features -> <pass/fail> | build-schemas -> <pass/fail> | check-x-writes -> <pass/fail>
 OPEN QUESTION: <one line, or none>
 ```
 

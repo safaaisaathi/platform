@@ -6,9 +6,10 @@
   "type": "object",
   "x-docId": "van-01",
   "x-writes": [
-    "driverapp: lastLocation, batteryPct, status, currentTripId",
-    "platform functions: status = offline, currentTripId",
-    "adminpanel: depot, plateNo, routeId"
+    "driverapp: lastLocation, batteryPct, status",
+    "platform functions: status = offline (vanOfflineWatch), currentTripId (startShift, endShift)",
+    "adminpanel via setVanDepot: depot",
+    "platform owner: create, plateNo, routeId"
   ],
   "x-reads": [
     "driverapp",

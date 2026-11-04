@@ -28,7 +28,7 @@ see_also:
 | **The data** | 18 collections, their fields and their shapes | `02-contracts/collections/` |
 | **The vocabulary** | 11 frozen enums, 35 constants, 8 claims, 4 topics, 10 reason codes | `02-contracts/` |
 | **The authorization** | Two rules files. The loose PHASE 1 one, and the claims-based PHASE 2 one | `03-rules/` |
-| **The decisions** | 15 callables and 7 server functions | `04-functions/`, `02-contracts/callables.json` |
+| **The decisions** | 16 callables and 7 server functions | `04-functions/`, `02-contracts/callables.json` |
 | **The journeys** | The feature layer. Which app does what part of a cross-app journey | `02-contracts/features/` |
 | **The change process** | How a change is proposed, recorded and adopted | `06-changes/` |
 

@@ -40,6 +40,7 @@ import {
   REPO_ROOT,
   asObject,
   collectExtensionFields,
+  collectionAliases,
   fieldExists,
   isJsonObject,
   ok,
@@ -238,6 +239,36 @@ function extensionHas(
   return names.has(name.split('.')[0]);
 }
 
+// The parent collection and its subcollections, grouped. A schema with
+// "x-path": "trips/{tripId}/trail/{chunkIndex}" is a child of the trips
+// schema, and the two form one document tree. The scanner attributes a field
+// per FILE, by the nearest collection literal, so in a file that names both
+// "trips" and "trail" it cannot tell which one a field belongs to. This map
+// lets the field check accept a field that belongs to either side of the tree.
+function documentTreeRelations(
+  schemas: ReadonlyMap<string, JsonObject>,
+  known: ReadonlySet<string>,
+  aliases: ReadonlyMap<string, string>,
+): Map<string, Set<string>> {
+  const childrenByRoot = new Map<string, Set<string>>();
+  for (const [base, schema] of schemas) {
+    const xPath = schema['x-path'];
+    if (typeof xPath !== 'string') continue;
+    const root = xPath.split('/')[0];
+    const rootBase = resolveCollectionName(root, known, aliases) ?? root;
+    const children = childrenByRoot.get(rootBase) ?? new Set<string>();
+    children.add(base);
+    childrenByRoot.set(rootBase, children);
+  }
+
+  const relations = new Map<string, Set<string>>();
+  for (const [root, children] of childrenByRoot) {
+    const group = new Set<string>([root, ...children]);
+    for (const base of group) relations.set(base, group);
+  }
+  return relations;
+}
+
 // --- fresh usage ------------------------------------------------------------
 
 function looksLikeUsage(raw: Json): raw is Json & Usage {
@@ -305,6 +336,10 @@ async function main(): Promise<void> {
 
   const schemas = await readCollectionSchemas();
   const known = new Set(schemas.keys());
+  // Subcollection names ("trail", "receipts") resolve to their schema file
+  // ("trailChunk", "noticeReceipt") through each schema's x-path.
+  const aliases = collectionAliases(schemas);
+  const tree = documentTreeRelations(schemas, known, aliases);
   const extensions = await readAppExtensionFields(known);
   const callablesDoc = asObject(await readJson(CALLABLES_PATH), '02-contracts/callables.json');
   const callableEntries = new Map<string, JsonObject>();
@@ -341,7 +376,7 @@ async function main(): Promise<void> {
   for (const [app, usage] of usages) {
     const collections = new Set<string>();
     for (const entry of usage.collections) {
-      const base = resolveCollectionName(entry.name, known);
+      const base = resolveCollectionName(entry.name, known, aliases);
       if (base === null) {
         conflicts.push({
           kind: 'UNKNOWN COLLECTION',
@@ -362,7 +397,7 @@ async function main(): Promise<void> {
 
     const perCollection = new Map<string, Set<string>>();
     for (const field of usage.fields) {
-      const base = resolveCollectionName(field.collection, known);
+      const base = resolveCollectionName(field.collection, known, aliases);
       if (base === null) continue;
       const names = perCollection.get(base) ?? new Set<string>();
       names.add(field.name);
@@ -374,10 +409,24 @@ async function main(): Promise<void> {
   // 2, 3 and 9: the fields.
   for (const [app, usage] of usages) {
     for (const field of usage.fields) {
-      const base = resolveCollectionName(field.collection, known);
+      const base = resolveCollectionName(field.collection, known, aliases);
       if (base === null) continue;
       if (schemaDeclaresProperty(schemas.get(base), field.name)) continue;
       if (extensionHas(extensions, app, base, field.name)) continue;
+
+      // A file that names both a parent and its subcollection ("trips" and
+      // "trail") cannot have its fields attributed to one side by proximity
+      // alone. When the field is missing on this side but a schema on the same
+      // document tree declares it, the field belongs to the tree, not here.
+      const relatives = tree.get(base);
+      if (
+        relatives !== undefined &&
+        [...relatives].some(
+          (other) => other !== base && schemaDeclaresProperty(schemas.get(other), field.name),
+        )
+      ) {
+        continue;
+      }
 
       if (PII_FIELD_SET.has(field.name.toLowerCase())) {
         conflicts.push({
@@ -427,7 +476,7 @@ async function main(): Promise<void> {
   if (adminRepo !== undefined) {
     const writeTargets = await scanWriteTargets(adminRepo);
     for (const [name, files] of writeTargets) {
-      const base = resolveCollectionName(name, known) ?? name;
+      const base = resolveCollectionName(name, known, aliases) ?? name;
       conflicts.push({
         kind: 'DIRECT ADMIN WRITE',
         app: 'adminpanel',

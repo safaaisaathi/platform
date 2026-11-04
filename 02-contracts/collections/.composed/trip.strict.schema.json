@@ -12,9 +12,8 @@
       "type": "object",
       "x-docId": "auto",
       "x-writes": [
-        "driverapp",
-        "platform functions: alertedWardIds",
-        "platform functions: endedAt, status"
+        "platform callables: create (startShift), endedAt and status (endShift), wardsDone (markWardDone), mockLocationDetected (flagMockLocation)",
+        "platform functions: alertedWardIds (arrivalAlert)"
       ],
       "x-reads": [
         "driverapp",

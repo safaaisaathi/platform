@@ -6,7 +6,19 @@
 
 ## [Unreleased]
 
-Nothing pending in the manifest. The extension registry gained a `mirror` path and the platform now holds a byte copy of each app-owned extension file, so a bare CI checkout can validate and compose the contract. No change entry, because no app has to act and no core shape moved.
+Nothing pending beyond 2.1.0. The extension registry gained a `mirror` path and the platform now holds a byte copy of each app-owned extension file, so a bare CI checkout can validate and compose the contract. No change entry, because no app has to act and no core shape moved.
+
+## [2.1.0] - 2026-11-05
+
+### Added
+
+- `flagMockLocation({ tripId })`. The driver app's phone detects a mocked GPS fix, but the trip document is server-owned, so the latch is set by a callable. The field already existed; this adds the write path the schema and PRD-2 assumed. ([CHG-0017](CHG-0017-the-mock-location-latch-is-a-callable.md))
+
+### Corrected, no change entry
+
+- `x-writes` in `trip`, `van`, `route` and `ward` now agree with `03-rules/firestore.strict.rules`. `trip` no longer claims a direct driver write the rules deny, and `van` no longer claims `currentTripId` or a direct admin write. A new tool, `08-tools/check-x-writes.ts`, keeps them in step.
+- CHG-0006 no longer says to delete the `cloud_functions` dependency. CHG-0003's callables need it. The step is now the app's own `functions/` deployment.
+- `check-conflicts.ts` resolves a subcollection name (`trail`, `receipts`) to its schema file, so CHG-0005's mandated trail write is no longer reported as an unknown collection.
 
 ## [2.0.0] - 2026-11-03
 

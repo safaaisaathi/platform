@@ -4,7 +4,7 @@ title: User App Harness Brief
 status: active
 owner: platform-owner
 updated: 2026-11-03
-contractVersion: "2.0.0"
+contractVersion: "2.1.0"
 audience: harness
 see_also:
   - ./README.md
@@ -155,7 +155,7 @@ node ../platform/08-tools/sync-contract.ts .
 
 ```json
 {
-  "contractVersion": "2.0.0",
+  "contractVersion": "2.1.0",
   "extensionVersion": "1",
   "coreChanges": {
     "CHG-0011": {
@@ -181,7 +181,7 @@ node ../platform/08-tools/sync-contract.ts .
 ### 4.6 Bump the version pin
 
 ```bash
-node ../platform/08-tools/bump-contract.ts . --contract-version=2.0.0
+node ../platform/08-tools/bump-contract.ts . --contract-version=2.1.0
 ```
 
 **The target is the manifest entry's `contractVersion.to`.** Read it out of `../platform/06-changes/manifest.json`. Never one you remember.

@@ -5,7 +5,12 @@
   "description": "The garbage collection vehicle. Carries one tracked phone. Serves one route. PRD-2 section 3.3.",
   "type": "object",
   "x-docId": "van-01",
-  "x-writes": ["driverapp: lastLocation, batteryPct, status, currentTripId", "platform functions: status = offline, currentTripId", "adminpanel: depot, plateNo, routeId"],
+  "x-writes": [
+    "driverapp: lastLocation, batteryPct, status",
+    "platform functions: status = offline (vanOfflineWatch), currentTripId (startShift, endShift)",
+    "adminpanel via setVanDepot: depot",
+    "platform owner: create, plateNo, routeId"
+  ],
   "x-reads": ["driverapp", "userapp", "adminpanel", "platform functions"],
   "x-no-pii": "This collection holds no personal data. plateNo, routeId, status, lastLocation and batteryPct are all operational.",
   "properties": {

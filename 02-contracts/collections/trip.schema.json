@@ -5,7 +5,10 @@
   "description": "One work session. The record of what happened. PRD-2 section 3.3.",
   "type": "object",
   "x-docId": "auto",
-  "x-writes": ["driverapp", "platform functions: alertedWardIds", "platform functions: endedAt, status"],
+  "x-writes": [
+    "platform callables: create (startShift), endedAt and status (endShift), wardsDone (markWardDone), mockLocationDetected (flagMockLocation)",
+    "platform functions: alertedWardIds (arrivalAlert)"
+  ],
   "x-reads": ["driverapp", "userapp", "adminpanel", "platform functions"],
   "properties": {
     "vanId": { "type": "string" },

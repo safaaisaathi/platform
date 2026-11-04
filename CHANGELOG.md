@@ -3,8 +3,8 @@ id: platform-changelog
 title: Platform Changelog
 status: active
 owner: platform-owner
-updated: 2026-11-03
-contractVersion: "2.0.0"
+updated: 2026-11-05
+contractVersion: "2.1.0"
 audience: both
 see_also:
   - ./VERSION
@@ -26,6 +26,17 @@ see_also:
 **A change to `06-changes/`, `07-guides/` or `09-reference/` does not bump `VERSION`.** A change to `02-contracts/` always does.
 
 ## [Unreleased]
+
+### Contract 2.1.0, the mock-location callable
+
+- `04-functions/src/callables/tracking.ts`. The `flagMockLocation` handler. The driver app detects a mocked GPS fix; the server sets `trips.mockLocationDetected`, because the strict rules keep the trip document server-owned. ([CHG-0017](06-changes/CHG-0017-the-mock-location-latch-is-a-callable.md))
+- `08-tools/check-x-writes.ts`. Checks each collection's `x-writes` header against `03-rules/firestore.strict.rules`. Its absence is what let `trip`, `van`, `route` and `ward` drift.
+
+### Fixed
+
+- `check-conflicts.ts` maps a subcollection name (`trail`, `receipts`) to its schema file, so a contract-correct trail write is no longer a false `UNKNOWN COLLECTION`. It also accepts a field that belongs to either side of a parent/subcollection tree, because the per-file scanner cannot tell the two apart.
+- `x-writes` corrected in `trip`, `van`, `route` and `ward`.
+- CHG-0006's migration step now deletes the app's own `functions/` deployment, not the `cloud_functions` dependency, which CHG-0003's callables need.
 
 ### Added
 

@@ -4,7 +4,7 @@ title: Safai Saathi Platform
 status: active
 owner: platform-owner
 updated: 2026-11-03
-contractVersion: "2.0.0"
+contractVersion: "2.1.0"
 audience: both
 see_also:
   - ./AGENTS.md
@@ -162,14 +162,14 @@ cd 04-functions && npm test        # the Node test runner
 
 | What | State |
 |---|---|
-| Contract version | `2.0.0` |
-| Next release | `2.1.0`. Additive only. `2.0.0` was the breaking one, the rules rewrite |
+| Contract version | `2.1.0` |
+| Next release | `2.2.0` when the next capability lands. `2.0.0` was the breaking one, the rules rewrite; `2.1.0` added the `flagMockLocation` callable |
 | Collections documented | 18 |
 | Frozen enums | 11 |
 | Shared constants | 35 |
 | Custom claims | 8 |
 | FCM topics | 4 |
-| Callables specified | **22. 15 callables and 7 server functions. All 22 are built** |
+| Callables specified | **23. 16 callables and 7 server functions. All 23 are built** |
 | Reason codes | 10 |
 | Registered extensions | 2. `driverapp` owns `trips.id`. `userapp` owns the five app-only `collectionFeedback` fields |
 | Feature entries | 5. The cross-app journeys, with each app's slice and what is still missing |

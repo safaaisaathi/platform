@@ -6,7 +6,7 @@
   "type": "object",
   "x-docId": "route-01",
   "x-writes": [
-    "adminpanel"
+    "adminpanel: district staff only, direct write"
   ],
   "x-reads": [
     "driverapp",

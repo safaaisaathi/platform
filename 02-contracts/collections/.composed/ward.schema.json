@@ -6,7 +6,7 @@
   "type": "object",
   "x-docId": "ward-1",
   "x-writes": [
-    "adminpanel via setVanDepot-adjacent staff callables",
+    "adminpanel: district staff only, direct write",
     "platform owner in the console"
   ],
   "x-reads": [

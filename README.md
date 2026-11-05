@@ -111,8 +111,9 @@ node 08-tools/check-features.ts          # every feature entry is valid and ever
 node 08-tools/build-schemas.ts           # compose the strict runtime schemas
 node 08-tools/sync-contract.ts <app>    # vendor the contract into an app repo
 node 08-tools/scan-usage.ts <app>       # what does this app actually touch
-node 08-tools/check-conflicts.ts <app>  # where does it disagree with the contract
+node 08-tools/check-conflicts.ts <app|path>  # where does it disagree with the contract
 node 08-tools/check-adoption.ts <app>   # which app is behind on which change
+node 08-tools/sync-adoption.ts          # regenerate 06-changes/adoption.json from the app files
 node 08-tools/check-adoption.ts --write # regenerate the impact matrix
 ```
 

@@ -17,12 +17,21 @@
 // whose .contract/usage.json is missing or older than its newest source file.
 // It calls the module's exported function; it never shells out.
 //
-// Usage: node --experimental-strip-types check-conflicts.ts [--app <name>]
+// Usage: node --experimental-strip-types check-conflicts.ts [app-repo] [--app <name>]
 //
-// Without --app it checks every app. With --app it still loads every app (the
-// shared-field check compares them), but it reports and fails on that app's
-// conflicts only. --app=<name> works too. A bare positional argument is not an
-// app filter: only --app selects one.
+// Without an argument it reads every app from the sibling directory of the same
+// name. A positional argument names one app checkout instead: "." run from the
+// app repo, a git worktree path, or one of the app names. APP_REPO works the
+// same way. --app is only the report filter and never chooses a directory; when
+// both are given they must agree.
+//
+// Without --app it reports every app it loaded. With --app it still loads every
+// app it can see (the shared-field check compares them), but it reports and
+// fails on that app's conflicts only. --app=<name> works too.
+//
+// With an explicit checkout the sibling apps may be absent or on another
+// branch. A missing sibling is skipped, not fatal: a worktree run must not fail
+// because the parent directory has no driverapp.
 //
 // Exits 0 with a clean summary when there are no conflicts, 1 when there is at
 // least one. The summary table is printed before the conflict lines because
@@ -121,8 +130,8 @@ const APP_NAMES = APPS.join(', ');
 type Conflict = { kind: Kind; app: string; message: string };
 
 // Reads --app from the command line. argv[0] is node and argv[1] is this file,
-// so the scan starts at argv[2]. A bare positional is not an app filter: the
-// app prompts pass "." as argv[2], and that must keep meaning "no filter".
+// so the scan starts at argv[2]. This is the report filter only. A bare
+// positional is a repo path and is read by parseRepoOverride below.
 function parseAppFilter(argv: readonly string[]): string | undefined {
   let selected: string | undefined;
   for (let index = 2; index < argv.length; index += 1) {
@@ -158,6 +167,90 @@ function parseAppFilter(argv: readonly string[]): string | undefined {
 
 function errorText(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause);
+}
+
+// --- which checkout holds which app -----------------------------------------
+
+type RepoOverride = { app: string; repoDir: string };
+
+// Identifies the app a directory holds. The app's own .contract files are the
+// evidence; the directory name is only the fallback, because a git worktree or
+// a CI checkout may be named anything.
+async function identifyApp(repoDir: string): Promise<string | undefined> {
+  for (const relative of ['.contract/adopted.json', '.contract/usage.json']) {
+    const raw = await tryReadJson(path.join(repoDir, relative));
+    if (isJsonObject(raw) && typeof raw['app'] === 'string' && APPS.includes(raw['app'])) {
+      return raw['app'];
+    }
+  }
+  for (const app of APPS) {
+    const raw = await tryReadJson(path.join(repoDir, '.contract', 'extensions', `${app}.json`));
+    if (isJsonObject(raw)) return app;
+  }
+  const base = path.basename(path.resolve(repoDir));
+  return APPS.includes(base) ? base : undefined;
+}
+
+// A positional argument or APP_REPO names the app checkout to scan. With none,
+// every app is read from MONOREPO_ROOT/<app>. Unknown flags are ignored here;
+// --app is parsed separately as the report filter.
+async function parseRepoOverride(argv: readonly string[]): Promise<RepoOverride | undefined> {
+  const positionals: string[] = [];
+  for (let index = 2; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === '--app') {
+      index += 1;
+      continue;
+    }
+    if (arg.startsWith('-')) continue;
+    positionals.push(arg);
+  }
+  if (positionals.length > 1) {
+    printErrors(HEADER, [`at most one app repo path is allowed, got: ${positionals.join(' ')}`]);
+  }
+
+  const chosen = positionals[0] ?? process.env['APP_REPO'];
+  if (chosen === undefined || chosen.length === 0) return undefined;
+
+  if (APPS.includes(chosen)) {
+    return { app: chosen, repoDir: path.join(MONOREPO_ROOT, chosen) };
+  }
+
+  const resolved = path.resolve(chosen);
+  // "." from the platform root, or any path inside the platform repo, names no
+  // app checkout. Keep the old meaning, every sibling app, so a run from the
+  // platform repo is unchanged.
+  if (resolved === REPO_ROOT || resolved.startsWith(`${REPO_ROOT}${path.sep}`)) {
+    console.log(
+      `"${chosen}" is inside the platform repo, so it names no app checkout; reading the sibling apps`,
+    );
+    return undefined;
+  }
+
+  const info = await stat(resolved).catch(() => undefined);
+  if (info === undefined || !info.isDirectory()) {
+    // A path like "../driverapp" that does not exist may still mean the
+    // sibling. Try the basename before failing, the way scan-usage does.
+    const base = path.basename(resolved);
+    if (APPS.includes(base)) {
+      const sibling = path.join(MONOREPO_ROOT, base);
+      const siblingInfo = await stat(sibling).catch(() => undefined);
+      if (siblingInfo !== undefined && siblingInfo.isDirectory()) {
+        return { app: base, repoDir: sibling };
+      }
+    }
+    printErrors(HEADER, [`app repo path "${chosen}" is not a directory (resolved to ${resolved})`]);
+  }
+
+  const app = await identifyApp(resolved);
+  if (app === undefined) {
+    printErrors(HEADER, [
+      `cannot tell which app "${chosen}" holds. Its .contract/adopted.json, .contract/usage.json ` +
+      `.contract/extensions/ name no app, and the directory is not named ${APP_NAMES}. ` +
+      'Pass a path inside an app checkout.',
+    ]);
+  }
+  return { app, repoDir: resolved };
 }
 
 function locations(files: readonly string[], count = 2): string {
@@ -310,9 +403,26 @@ async function loadUsage(app: string, repoDir: string): Promise<Usage> {
 // --- the checks -------------------------------------------------------------
 
 async function main(): Promise<void> {
-  // Parse the filter first, so a bad name fails before the slow scan.
+  // Parse the filter and the repo path first, so a bad name fails before the
+  // slow scan.
   const selectedApp = parseAppFilter(process.argv);
-  const reportApps: readonly string[] = selectedApp === undefined ? APPS : [selectedApp];
+  const repoOverride = await parseRepoOverride(process.argv);
+  if (
+    selectedApp !== undefined &&
+    repoOverride !== undefined &&
+    selectedApp !== repoOverride.app
+  ) {
+    printErrors(HEADER, [
+      `--app ${selectedApp} contradicts the repo path, which holds ${repoOverride.app}. ` +
+      'Drop one of them, or make them agree.',
+    ]);
+  }
+  const reportApps: readonly string[] =
+    selectedApp !== undefined
+      ? [selectedApp]
+      : repoOverride !== undefined
+        ? [repoOverride.app]
+        : APPS;
 
   const conflicts: Conflict[] = [];
   const fatal: string[] = [];
@@ -358,9 +468,18 @@ async function main(): Promise<void> {
   const usages = new Map<string, Usage>();
   const repos = new Map<string, string>();
   for (const app of APPS) {
-    const repoDir = path.join(MONOREPO_ROOT, app);
+    const repoDir =
+      repoOverride !== undefined && repoOverride.app === app
+        ? repoOverride.repoDir
+        : path.join(MONOREPO_ROOT, app);
     const info = await stat(repoDir).catch(() => undefined);
     if (info === undefined || !info.isDirectory()) {
+      if (repoOverride !== undefined) {
+        // An explicit checkout does not promise the siblings. The shared-field
+        // check needs two apps, but a missing sibling is not this app's fault.
+        console.log(`skipping ${app}: no checkout at ${repoDir}, only ${repoOverride.app} was passed`);
+        continue;
+      }
       fatal.push(`${app}: app repo not visible at ${repoDir}`);
       continue;
     }
@@ -605,19 +724,20 @@ async function main(): Promise<void> {
 
   // --- the report -----------------------------------------------------------
 
-  // The checks above always load every app, because the shared-field check
-  // compares them. Only the report and the exit code follow --app.
+  // The checks above load every app they can see, because the shared-field
+  // check compares them. Only the report and the exit code follow --app or an
+  // explicit app checkout.
   const reported =
-    selectedApp === undefined
+    reportApps.length === APPS.length
       ? conflicts
-      : conflicts.filter((conflict) => conflict.app === selectedApp);
+      : conflicts.filter((conflict) => reportApps.includes(conflict.app));
 
   printSummary(reportApps, reported);
   if (reported.length === 0 && fatal.length === 0) {
     ok(
-      selectedApp === undefined
+      reportApps.length === APPS.length
         ? 'no conflicts: every app agrees with the contract'
-        : `no conflicts: ${selectedApp} agrees with the contract`,
+        : `no conflicts: ${reportApps.join(', ')} agrees with the contract`,
     );
     return;
   }

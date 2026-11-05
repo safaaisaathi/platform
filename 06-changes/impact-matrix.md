@@ -27,7 +27,7 @@ see_also:
 <!-- BEGIN GENERATED: section-1 -->
 | Change | Sev | Pri | Driver | User | Admin | Deadline |
 |---|---|---|---|---|---|---|
-| [CHG-0001](CHG-0001-freeze-the-collection-and-field-contract.md) Freeze the collection and field contract | S2 | P2 | ✅ 100% | ✅ 100% | ✅ 100% | none |
+| [CHG-0001](CHG-0001-freeze-the-collection-and-field-contract.md) Freeze the collection and field contract | S2 | P2 | ✅ 100% | ⬜ 0% | ⬜ 0% | none |
 | [CHG-0002](CHG-0002-mask-the-raw-driver-phone.md) Move the raw driver phone to staffPhones and mask it at the source | S1 | **P1** | ⬜ 0% | n/a | ⬜ 0% | 2026-11-15 |
 | [CHG-0003](CHG-0003-scope-the-rules-by-custom-claims.md) Scope the Firestore rules by custom claims instead of by signed-in | S1 | **P0** | ⬜ 0% | ⬜ 0% | ⬜ 0% | **Immediate** |
 | [CHG-0004](CHG-0004-admin-writes-go-through-callables.md) Route every admin panel write through a callable | S1 | **P1** | n/a | n/a | ⬜ 0% | **Immediate** |

@@ -198,10 +198,15 @@ Every entry in `manifest.json` has this shape.
 **Section 1 is generated. Do not edit it by hand.** If you did, it would drift from the machine log, and the machine log is the one that counts.
 
 ```bash
-node 08-tools/check-adoption.ts --write
+node 08-tools/sync-adoption.ts          # rewrite adoption.json from the app files
+node 08-tools/check-adoption.ts --write # rewrite the matrix from adoption.json
 ```
 
-**The command rewrites the block between the `BEGIN GENERATED: section-1` and `END GENERATED: section-1` markers.** It reads the manifest for the changes and the adoption records for the progress. An app's own `.contract/adopted.json` wins when the app repo is checked out next to this one. Otherwise the platform's report in `adoption.json` is used.
+**The first command regenerates the report. The second regenerates the matrix from the report.** `adoption.json` is generated, never hand-edited: each app's `.contract/adopted.json` supplies the statuses, and a manifest entry the app file does not mention becomes `not_started` when the app is affected and `not_applicable` when it is not. An app with no file shows `contractVersion: null` and `adoptionFile: null`, because a status without evidence is not a status.
+
+**Pass `--repo <app>=<path>` (or `APP_REPO_<APP>`) to read a branch or a worktree.** That is how a report is generated before an adoption PR merges. `sync-adoption.ts --check` exits 1 when the committed report disagrees with the checkouts it can see.
+
+**The matrix command rewrites the block between the `BEGIN GENERATED: section-1` and `END GENERATED: section-1` markers.** It reads the manifest for the changes and the adoption records for the progress. An app's own `.contract/adopted.json` wins when the app repo is checked out next to this one. Otherwise the platform's report in `adoption.json` is used.
 
 **Sections 2 to 6 are written by hand.** They are the reasoning, and a machine cannot write them.
 

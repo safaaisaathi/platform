@@ -295,6 +295,8 @@ PY
 node ../platform/08-tools/check-conflicts.ts .
 ```
 
+**The `.` is the app checkout itself, not a filter.** Run it from the app repo, or from a worktree, and the scanner reads that checkout. It identifies the app from `.contract/adopted.json`, `.contract/usage.json` or `.contract/extensions/`, so a worktree with any directory name works. `APP_REPO=<path>` does the same. `--app` only filters the report.
+
 **Verify this guide's tables.**
 
 ```bash

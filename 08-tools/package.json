@@ -11,6 +11,7 @@
     "validate": "node --experimental-strip-types validate-contract.ts",
     "consistency": "node --experimental-strip-types check-consistency.ts",
     "adoption": "node --experimental-strip-types check-adoption.ts",
+    "adoption:sync": "node --experimental-strip-types sync-adoption.ts",
     "build": "node --experimental-strip-types build-schemas.ts",
     "x-writes": "node --experimental-strip-types check-x-writes.ts",
     "sync": "node --experimental-strip-types sync-contract.ts",

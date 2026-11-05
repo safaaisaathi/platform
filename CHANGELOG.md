@@ -40,6 +40,8 @@ see_also:
 
 ### Fixed
 
+- `check-conflicts.ts` now scans the app checkout named by a positional argument, `APP_REPO`, or the app name, instead of always scanning the sibling directory. A worktree or a CI checkout therefore scans its own code and keeps its own `.contract/usage.json`. `--app` stays the report filter and must agree with the path. A missing sibling is skipped, not fatal. ([issue #8](https://github.com/safaaisaathi/platform/issues/8))
+- `sync-adoption.ts` regenerates `06-changes/adoption.json` from each app's `.contract/adopted.json` and the manifest, so the report can no longer drift by hand. An app with no file now shows `contractVersion: null` instead of a placeholder pin, and `--check` fails when the report is stale. ([issue #7](https://github.com/safaaisaathi/platform/issues/7))
 - `04-functions` now targets the Node 22 runtime. Node 20 was decommissioned on 2026-10-30, so every `firebase deploy` failed with "Runtime Node.js 20 was decommissioned". `engines.node` is 22, which is also what CI already runs.
 - `check-conflicts.ts` maps a subcollection name (`trail`, `receipts`) to its schema file, so a contract-correct trail write is no longer a false `UNKNOWN COLLECTION`. It also accepts a field that belongs to either side of a parent/subcollection tree, because the per-file scanner cannot tell the two apart.
 - `x-writes` corrected in `trip`, `van`, `route` and `ward`.

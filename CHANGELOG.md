@@ -4,7 +4,7 @@ title: Platform Changelog
 status: active
 owner: platform-owner
 updated: 2026-11-05
-contractVersion: "2.2.0"
+contractVersion: "2.3.0"
 audience: both
 see_also:
   - ./VERSION
@@ -26,6 +26,12 @@ see_also:
 **A change to `06-changes/`, `07-guides/` or `09-reference/` does not bump `VERSION`.** A change to `02-contracts/` always does.
 
 ## [Unreleased]
+
+### Contract 2.3.0, the audit trail, the stale marker and the staff alert
+
+- `drivers` gains four optional audit fields. `upsertDriver` writes them from the server clock and the `staffId` claim. ([CHG-0020](06-changes/CHG-0020-the-driver-audit-fields.md))
+- `startShift` repairs a stale `vans.currentTripId` instead of failing with `staleMarker`. A shift that died no longer blocks the next driver. ([CHG-0021](06-changes/CHG-0021-the-stale-van-marker-is-repaired-by-startshift.md))
+- `flagMockLocation` pushes once to the ward inspectors of the trip's wards, on the existing `staff_{staffId}` topic. ([CHG-0022](06-changes/CHG-0022-the-mock-location-staff-alert.md))
 
 ### Contract 2.2.0, the receipt and the index
 

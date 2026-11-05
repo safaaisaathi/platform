@@ -4,7 +4,7 @@ title: Safai Saathi Platform
 status: active
 owner: platform-owner
 updated: 2026-11-03
-contractVersion: "2.2.0"
+contractVersion: "2.3.0"
 audience: both
 see_also:
   - ./AGENTS.md

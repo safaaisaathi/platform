@@ -132,6 +132,7 @@ function wardDutyId(dayKey: string, wardId: string): string {
  * The transaction is on vans/{vanId}:
  *
  *   marker set and the van is on shift  -> read the trip
+ *     missing or no longer open -> CLEAR the marker, then create
  *     another driver  -> vanHeldByAnotherDriver
  *     another van     -> staleMarker
  *     otherwise       -> RESUME, write nothing
@@ -189,16 +190,28 @@ export const startShift = functions.https.onCall((data, context) =>
       if (currentTripId !== undefined && van.status === VAN_STATUS_ON_SHIFT) {
         const openTripRef: DocumentReference = db.collection('trips').doc(currentTripId);
         const openSnap = await tx.get(openTripRef);
-        // The marker points at nothing. That is a stale marker, not a new
-        // shift: creating one would orphan whatever the marker meant.
-        if (!openSnap.exists) fail('staleMarker');
-
         const openTrip: Record<string, unknown> = openSnap.data() ?? {};
-        if (openTrip.driverId !== driverId) fail('vanHeldByAnotherDriver');
-        if (openTrip.vanId !== vanId) fail('staleMarker');
 
-        // RESUME. The trip is already open, so nothing is written.
-        return currentTripId;
+        // The marker points at nothing, or at a trip that is no longer open.
+        // That is a stale marker left by a shift that died: the app was killed,
+        // the phone died, or endShift never ran. A stale marker must not block
+        // the next driver, so clear it in this transaction and fall through to
+        // create. Only the server may clear it: the client cannot prove the
+        // trip is closed. CHG-0021.
+        if (!openSnap.exists || openTrip.status !== TRIP_STATUS_ON_SHIFT) {
+          tx.update(vanRef, {
+            currentTripId: null,
+            status: VAN_STATUS_IDLE,
+          });
+        } else {
+          if (openTrip.driverId !== driverId) fail('vanHeldByAnotherDriver');
+          // A live trip that belongs to another van is the documented
+          // staleMarker conflict. Clearing it would be a guess, so keep failing.
+          if (openTrip.vanId !== vanId) fail('staleMarker');
+
+          // RESUME. The trip is already open, so nothing is written.
+          return currentTripId;
+        }
       }
 
       // Create. The trip, the van marker and the wardDuty rows commit together

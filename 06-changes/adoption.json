@@ -117,6 +117,20 @@
           "status": "not_started",
           "progress": 0,
           "urgency": "scheduled"
+        },
+        "CHG-0020": {
+          "status": "not_applicable",
+          "progress": null,
+          "note": "The manifest does not list driverapp in affectedApps."
+        },
+        "CHG-0021": {
+          "status": "not_started",
+          "progress": 0
+        },
+        "CHG-0022": {
+          "status": "not_applicable",
+          "progress": null,
+          "note": "The manifest does not list driverapp in affectedApps."
         }
       },
       "extensionChanges": {
@@ -230,6 +244,21 @@
           "status": "not_applicable",
           "progress": null,
           "note": "The driver app owns the bounded complaints fetch."
+        },
+        "CHG-0020": {
+          "status": "not_applicable",
+          "progress": null,
+          "note": "The manifest does not list userapp in affectedApps."
+        },
+        "CHG-0021": {
+          "status": "not_applicable",
+          "progress": null,
+          "note": "The manifest does not list userapp in affectedApps."
+        },
+        "CHG-0022": {
+          "status": "not_applicable",
+          "progress": null,
+          "note": "The manifest does not list userapp in affectedApps."
         }
       },
       "extensionChanges": {
@@ -342,6 +371,19 @@
           "status": "not_applicable",
           "progress": null,
           "note": "The admin panel does not run this query."
+        },
+        "CHG-0020": {
+          "status": "not_started",
+          "progress": 0
+        },
+        "CHG-0021": {
+          "status": "not_applicable",
+          "progress": null,
+          "note": "The manifest does not list adminpanel in affectedApps."
+        },
+        "CHG-0022": {
+          "status": "not_started",
+          "progress": 0
         }
       },
       "extensionChanges": {

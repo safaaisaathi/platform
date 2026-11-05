@@ -4,7 +4,7 @@ title: The Impact Matrix
 status: active
 owner: platform-owner
 updated: 2026-11-05
-contractVersion: "2.2.0"
+contractVersion: "2.3.0"
 audience: both
 see_also:
   - ./manifest.json
@@ -48,6 +48,9 @@ see_also:
 | [CHG-0017](CHG-0017-the-mock-location-latch-is-a-callable.md) The mock-location latch is set by a callable, not a client trip write | S2 | P2 | ⬜ 0% | n/a | n/a | none |
 | [CHG-0018](CHG-0018-the-notice-read-receipt.md) Publish the notice read receipt | S2 | P2 | ⬜ 0% | n/a | n/a | none |
 | [CHG-0019](CHG-0019-the-complaints-index-for-the-driver-app.md) The complaints index for the driver app's bounded fetch | S3 | P3 | ⬜ 0% | n/a | n/a | none |
+| [CHG-0020](CHG-0020-the-driver-audit-fields.md) Audit who created and last changed a driver | S3 | P3 | n/a | n/a | ⬜ 0% | none |
+| [CHG-0021](CHG-0021-the-stale-van-marker-is-repaired-by-startshift.md) startShift clears a stale van marker instead of failing | S2 | P2 | ⬜ 0% | n/a | n/a | none |
+| [CHG-0022](CHG-0022-the-mock-location-staff-alert.md) Alert the ward inspector when a mock location is latched | S2 | P2 | n/a | n/a | ⬜ 0% | none |
 
 **Legend**: ✅ done. 🟡 in progress. ⬜ not started. n/a not affected.
 <!-- END GENERATED: section-1 -->

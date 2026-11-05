@@ -4,7 +4,7 @@ title: Driver App Harness Brief
 status: active
 owner: platform-owner
 updated: 2026-11-02
-contractVersion: "2.2.0"
+contractVersion: "2.3.0"
 audience: harness
 see_also:
   - ./README.md
@@ -115,6 +115,7 @@ node ../platform/08-tools/sync-contract.ts .
 | 11 | **CHG-0017** | Call `flagMockLocation({ tripId })` where the tracking engine latches the mock flag. Do not write `trips.mockLocationDetected` directly. The strict rules deny every client trip write, so the server sets the latch | No direct `mockLocationDetected` write remains. The call is `httpsCallable('flagMockLocation')`. The banner stays local and works offline |
 | 12 | **CHG-0018** | Write `notices/{noticeId}/receipts/{driverCode}` with `readAt` when a notice is opened, and read it back to drive the unread dot. The doc id is the `driverId` claim. Do not add a receipt array to the notice document | The unread dot survives a restart. The receipt write is the only notice write. The session-local set stays as the offline fallback |
 | 13 | **CHG-0019** | Switch Pending Reports to `.orderBy('createdAt', descending: true).limit(200)` **only after** the platform has deployed the new index. Keep the ascending query until then | The query is bounded and descending. No Dart-side sort of the fetched window remains |
+| 14 | **CHG-0021** | No code change. `startShift` now clears a stale `vans.currentTripId` itself. Keep the `staleMarker` copy, which now means only "the marker points at a live trip of another van" | A dead shift no longer blocks the next driver. `staleMarker` still surfaces for the real conflict |
 
 ### 4.3 The reason codes the app must handle
 
@@ -150,7 +151,7 @@ node ../platform/08-tools/sync-contract.ts .
 
 ```json
 {
-  "contractVersion": "2.2.0",
+  "contractVersion": "2.3.0",
   "extensionVersion": "1",
   "coreChanges": {
     "CHG-0006": {
@@ -174,7 +175,7 @@ node ../platform/08-tools/sync-contract.ts .
 ### 4.6 Bump the version pin
 
 ```bash
-node ../platform/08-tools/bump-contract.ts . --contract-version=2.2.0
+node ../platform/08-tools/bump-contract.ts . --contract-version=2.3.0
 ```
 
 **The target is the manifest entry's `contractVersion.to`.** Read it out of `../platform/06-changes/manifest.json`. Never one you remember.

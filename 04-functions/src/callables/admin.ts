@@ -340,16 +340,28 @@ export const upsertDriver = functions.https.onCall((data, context) =>
     const phoneMasked = maskPhone(phone);
 
     // Only the supplied fields are written, so an update does not blank an
-    // allotment the panel did not mean to touch. driver.schema.json has no
-    // updatedAt and the composed strict schema sets additionalProperties:
-    // false, so none is written.
+    // allotment the panel did not mean to touch. The audit fields are set here,
+    // from the server clock and the live staffId claim: a client cannot forge
+    // who changed what. createdAt and createdBy are written once, on create;
+    // updatedAt and updatedBy on every write. CHG-0020.
     const driver: Record<string, unknown> = { name, phoneMasked };
     if (vanId !== undefined) driver.vanId = vanId;
     if (routeId !== undefined) driver.routeId = routeId;
     if (wardIds !== undefined) driver.wardIds = wardIds;
     if (active !== undefined) driver.active = active;
 
-    await db.collection('drivers').doc(code).set(driver, { merge: true });
+    const driverRef = db.collection('drivers').doc(code);
+    await db.runTransaction(async (tx: Transaction) => {
+      const existing = await tx.get(driverRef);
+      const now = serverNow();
+      if (!existing.exists) {
+        driver.createdAt = now;
+        driver.createdBy = staffScope.staffId;
+      }
+      driver.updatedAt = now;
+      driver.updatedBy = staffScope.staffId;
+      tx.set(driverRef, driver, { merge: true });
+    });
 
     // The raw phone's only home. staffPhone.schema.json requires all three.
     await db

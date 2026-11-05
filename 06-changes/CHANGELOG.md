@@ -6,7 +6,18 @@
 
 ## [Unreleased]
 
-Nothing pending beyond 2.2.0. The extension registry gained a `mirror` path and the platform now holds a byte copy of each app-owned extension file, so a bare CI checkout can validate and compose the contract. No change entry, because no app has to act and no core shape moved.
+Nothing pending beyond 2.3.0.
+
+## [2.3.0] - 2026-11-05
+
+### Added
+
+- `drivers.createdAt`, `drivers.createdBy`, `drivers.updatedAt` and `drivers.updatedBy`. `upsertDriver` sets them from the server clock and the live `staffId` claim, so a client cannot forge who changed a driver or when. ([CHG-0020](CHG-0020-the-driver-audit-fields.md))
+- A staff alert on the first mock-location latch. `flagMockLocation` now pushes to the inspector of each of the trip's wards, on the existing `staff_{staffId}` topic. The send happens only on the call that flips the latch, so a retry cannot duplicate it. ([CHG-0022](CHG-0022-the-mock-location-staff-alert.md))
+
+### Changed
+
+- `startShift` clears a stale `vans.currentTripId` when the marker points at a missing trip or at a trip that is no longer `on_shift`, then starts the shift. It used to fail with `staleMarker` and wait for a manual write. `staleMarker` still fires for a live trip of another van. ([CHG-0021](CHG-0021-the-stale-van-marker-is-repaired-by-startshift.md))
 
 ## [2.2.0] - 2026-11-05
 

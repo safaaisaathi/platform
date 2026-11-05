@@ -123,14 +123,14 @@ see_also:
 | **B-09** | `setDriverPin` has a live bypass flag | P1 | **`CHG-0006`**. `DEMO_SEED_BYPASS` at `04-functions/src/index.ts:173-188` |
 | **B-10** | No App Check | P1 | The client repos. **After** the rules are tightened, not before |
 | **B-11** | `notices` has no read-state | P2 | **`CHG-0018`** publishes `noticeReceipt`. The schema and the strict rules were already there |
-| **B-12** | No staff push on mock-location detection | P2 | The Functions. `../02-contracts/topics.json` |
-| **B-13** | `drivers` has no audit fields | P2 | The contract |
+| **B-12** | No staff push on mock-location detection | P2 | **`CHG-0022`**. `flagMockLocation` pushes to the ward inspector |
+| **B-13** | `drivers` has no audit fields | P2 | **`CHG-0020`**. Four optional fields, set server-side |
 | **B-14** | No CI | P1 | **`../.github/workflows/contract-gate.yml`** exists now |
 | **B-15** | No Android flavors | P2 | The driver app |
 | **B-16** | Storage rules are loose and the path is meaningless | P2 | `../03-rules/storage.rules` |
 | **B-17** | The emulator suite cannot run the Functions or Storage | P2 | **`../03-rules/firebase.json`** starts Storage on 9199. Functions run from `../04-functions/` |
 | **B-18** | `readVans()` is a dead full-collection read | P2 | The client repos |
-| **B-19** | Nothing clears a stale `vans.currentTripId` | P2 | `../02-contracts/callables.json`. `startShift` handles `staleMarker` |
+| **B-19** | Nothing clears a stale `vans.currentTripId` | P2 | **`CHG-0021`**. `startShift` clears it and continues |
 | **B-20** | The `functions/lib/` build artifact is stale. **A deploy trap** | P1 | `../04-functions/README.md` section 10 |
 | **B-21** | There is no inbound FCM handler | P1 | The client repos. `../02-contracts/topics.json` defines the payloads |
 | **B-22** | The van topic is never unsubscribed | P1 | The client repos |

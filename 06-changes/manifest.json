@@ -3,7 +3,7 @@
   "$id": "https://safaaisaathi.contracts/changes/manifest.json",
   "title": "Safai Saathi change manifest",
   "description": "The machine-readable list of every change to the contract. Each entry pairs with a CHG-nnn-*.md file in this folder. The two change together, never one alone.",
-  "contractVersion": "2.2.0",
+  "contractVersion": "2.3.0",
   "generatedAt": "2026-11-05",
   "changes": [
     {
@@ -14,12 +14,30 @@
       "breaking": false,
       "date": "2026-11-01",
       "author": "platform-owner",
-      "contractVersion": { "from": "0.0.0", "to": "1.0.0" },
-      "affectedApps": ["driverapp", "userapp", "adminpanel"],
+      "contractVersion": {
+        "from": "0.0.0",
+        "to": "1.0.0"
+      },
+      "affectedApps": [
+        "driverapp",
+        "userapp",
+        "adminpanel"
+      ],
       "affectedCollections": [
-        "wards", "routes", "vans", "trips", "trailChunk", "complaints",
-        "notices", "noticeReceipt", "ratings", "staff", "staffPhones",
-        "drivers", "vanDevices", "deviceTopics"
+        "wards",
+        "routes",
+        "vans",
+        "trips",
+        "trailChunk",
+        "complaints",
+        "notices",
+        "noticeReceipt",
+        "ratings",
+        "staff",
+        "staffPhones",
+        "drivers",
+        "vanDevices",
+        "deviceTopics"
       ],
       "affectedFields": [],
       "migration": {
@@ -42,13 +60,32 @@
       "breaking": true,
       "date": "2026-11-01",
       "author": "platform-owner",
-      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
-      "affectedApps": ["driverapp", "adminpanel"],
-      "affectedCollections": ["drivers", "staffPhones"],
+      "contractVersion": {
+        "from": "1.0.0",
+        "to": "2.0.0"
+      },
+      "affectedApps": [
+        "driverapp",
+        "adminpanel"
+      ],
+      "affectedCollections": [
+        "drivers",
+        "staffPhones"
+      ],
       "affectedFields": [
-        { "path": "drivers.phone", "change": "renamed", "to": "drivers.phoneMasked" },
-        { "path": "drivers.phoneMasked", "change": "added" },
-        { "path": "staffPhones.phone", "change": "added" }
+        {
+          "path": "drivers.phone",
+          "change": "renamed",
+          "to": "drivers.phoneMasked"
+        },
+        {
+          "path": "drivers.phoneMasked",
+          "change": "added"
+        },
+        {
+          "path": "staffPhones.phone",
+          "change": "added"
+        }
       ],
       "migration": {
         "required": true,
@@ -76,9 +113,22 @@
       "breaking": true,
       "date": "2026-11-01",
       "author": "platform-owner",
-      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
-      "affectedApps": ["driverapp", "userapp", "adminpanel"],
-      "affectedCollections": ["vans", "trips", "drivers", "complaints", "ratings"],
+      "contractVersion": {
+        "from": "1.0.0",
+        "to": "2.0.0"
+      },
+      "affectedApps": [
+        "driverapp",
+        "userapp",
+        "adminpanel"
+      ],
+      "affectedCollections": [
+        "vans",
+        "trips",
+        "drivers",
+        "complaints",
+        "ratings"
+      ],
       "affectedFields": [],
       "migration": {
         "required": true,
@@ -106,9 +156,20 @@
       "breaking": true,
       "date": "2026-11-01",
       "author": "platform-owner",
-      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
-      "affectedApps": ["adminpanel"],
-      "affectedCollections": ["complaints", "notices", "drivers", "staff", "vans"],
+      "contractVersion": {
+        "from": "1.0.0",
+        "to": "2.0.0"
+      },
+      "affectedApps": [
+        "adminpanel"
+      ],
+      "affectedCollections": [
+        "complaints",
+        "notices",
+        "drivers",
+        "staff",
+        "vans"
+      ],
       "affectedFields": [],
       "migration": {
         "required": true,
@@ -134,12 +195,26 @@
       "breaking": true,
       "date": "2026-11-01",
       "author": "platform-owner",
-      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
-      "affectedApps": ["driverapp"],
-      "affectedCollections": ["trips", "trailChunk"],
+      "contractVersion": {
+        "from": "1.0.0",
+        "to": "2.0.0"
+      },
+      "affectedApps": [
+        "driverapp"
+      ],
+      "affectedCollections": [
+        "trips",
+        "trailChunk"
+      ],
       "affectedFields": [
-        { "path": "trips.gpsTrail", "change": "removed" },
-        { "path": "trailChunk.points", "change": "added" }
+        {
+          "path": "trips.gpsTrail",
+          "change": "removed"
+        },
+        {
+          "path": "trailChunk.points",
+          "change": "added"
+        }
       ],
       "migration": {
         "required": true,
@@ -166,8 +241,13 @@
       "breaking": true,
       "date": "2026-11-01",
       "author": "platform-owner",
-      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
-      "affectedApps": ["driverapp"],
+      "contractVersion": {
+        "from": "1.0.0",
+        "to": "2.0.0"
+      },
+      "affectedApps": [
+        "driverapp"
+      ],
       "affectedCollections": [],
       "affectedFields": [],
       "migration": {
@@ -196,9 +276,16 @@
       "breaking": false,
       "date": "2026-11-01",
       "author": "platform-owner",
-      "contractVersion": { "from": "1.0.0", "to": "1.1.0" },
-      "affectedApps": ["userapp"],
-      "affectedCollections": ["wards"],
+      "contractVersion": {
+        "from": "1.0.0",
+        "to": "1.1.0"
+      },
+      "affectedApps": [
+        "userapp"
+      ],
+      "affectedCollections": [
+        "wards"
+      ],
       "affectedFields": [],
       "migration": {
         "required": false,
@@ -225,10 +312,18 @@
       "kind": "extension",
       "app": "driverapp",
       "extensionVersion": "1",
-      "affectedApps": ["driverapp"],
-      "affectedCollections": ["trips"],
+      "affectedApps": [
+        "driverapp"
+      ],
+      "affectedCollections": [
+        "trips"
+      ],
       "affectedFields": [
-        { "path": "trips.id", "change": "added", "ownedBy": "driverapp" }
+        {
+          "path": "trips.id",
+          "change": "added",
+          "ownedBy": "driverapp"
+        }
       ],
       "migration": {
         "required": false,
@@ -250,8 +345,15 @@
       "breaking": true,
       "date": "2026-11-02",
       "author": "platform-owner",
-      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
-      "affectedApps": ["driverapp", "userapp", "adminpanel"],
+      "contractVersion": {
+        "from": "1.0.0",
+        "to": "2.0.0"
+      },
+      "affectedApps": [
+        "driverapp",
+        "userapp",
+        "adminpanel"
+      ],
       "affectedCollections": [],
       "affectedFields": [],
       "migration": {
@@ -280,8 +382,15 @@
       "breaking": true,
       "date": "2026-11-02",
       "author": "platform-owner",
-      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
-      "affectedApps": ["driverapp", "userapp", "adminpanel"],
+      "contractVersion": {
+        "from": "1.0.0",
+        "to": "2.0.0"
+      },
+      "affectedApps": [
+        "driverapp",
+        "userapp",
+        "adminpanel"
+      ],
       "affectedCollections": [],
       "affectedFields": [],
       "migration": {
@@ -311,12 +420,29 @@
       "breaking": true,
       "date": "2026-11-02",
       "author": "platform-owner",
-      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
-      "affectedApps": ["driverapp", "userapp", "adminpanel"],
-      "affectedCollections": ["complaints"],
+      "contractVersion": {
+        "from": "1.0.0",
+        "to": "2.0.0"
+      },
+      "affectedApps": [
+        "driverapp",
+        "userapp",
+        "adminpanel"
+      ],
+      "affectedCollections": [
+        "complaints"
+      ],
       "affectedFields": [
-        { "path": "complaints.status", "change": "added", "to": "pending_verification, auto_resolved, reopened" },
-        { "path": "complaints.category", "change": "added", "to": "dead_animal, public_toilet, construction_debris, hazardous_waste" }
+        {
+          "path": "complaints.status",
+          "change": "added",
+          "to": "pending_verification, auto_resolved, reopened"
+        },
+        {
+          "path": "complaints.category",
+          "change": "added",
+          "to": "dead_animal, public_toilet, construction_debris, hazardous_waste"
+        }
       ],
       "migration": {
         "required": true,
@@ -345,9 +471,18 @@
       "breaking": true,
       "date": "2026-11-02",
       "author": "platform-owner",
-      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
-      "affectedApps": ["driverapp", "userapp", "adminpanel"],
-      "affectedCollections": ["wardDuty"],
+      "contractVersion": {
+        "from": "1.0.0",
+        "to": "2.0.0"
+      },
+      "affectedApps": [
+        "driverapp",
+        "userapp",
+        "adminpanel"
+      ],
+      "affectedCollections": [
+        "wardDuty"
+      ],
       "affectedFields": [],
       "migration": {
         "required": true,
@@ -376,14 +511,37 @@
       "breaking": true,
       "date": "2026-11-02",
       "author": "platform-owner",
-      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
-      "affectedApps": ["userapp", "adminpanel"],
-      "affectedCollections": ["complaints", "staff", "complaintPhones"],
+      "contractVersion": {
+        "from": "1.0.0",
+        "to": "2.0.0"
+      },
+      "affectedApps": [
+        "userapp",
+        "adminpanel"
+      ],
+      "affectedCollections": [
+        "complaints",
+        "staff",
+        "complaintPhones"
+      ],
       "affectedFields": [
-        { "path": "complaints.phone", "change": "removed" },
-        { "path": "complaints.assignedPhone", "change": "removed" },
-        { "path": "complaints.escalatedToPhone", "change": "removed" },
-        { "path": "staff.phone", "change": "renamed", "to": "staff.phoneMasked" }
+        {
+          "path": "complaints.phone",
+          "change": "removed"
+        },
+        {
+          "path": "complaints.assignedPhone",
+          "change": "removed"
+        },
+        {
+          "path": "complaints.escalatedToPhone",
+          "change": "removed"
+        },
+        {
+          "path": "staff.phone",
+          "change": "renamed",
+          "to": "staff.phoneMasked"
+        }
       ],
       "migration": {
         "required": true,
@@ -413,9 +571,17 @@
       "breaking": true,
       "date": "2026-11-02",
       "author": "platform-owner",
-      "contractVersion": { "from": "1.0.0", "to": "2.0.0" },
-      "affectedApps": ["adminpanel", "userapp"],
-      "affectedCollections": ["complaints"],
+      "contractVersion": {
+        "from": "1.0.0",
+        "to": "2.0.0"
+      },
+      "affectedApps": [
+        "adminpanel",
+        "userapp"
+      ],
+      "affectedCollections": [
+        "complaints"
+      ],
       "affectedFields": [],
       "migration": {
         "required": true,
@@ -443,11 +609,23 @@
       "breaking": false,
       "date": "2026-11-02",
       "author": "platform-owner",
-      "contractVersion": { "from": "1.0.0", "to": "1.1.0" },
-      "affectedApps": ["adminpanel"],
+      "contractVersion": {
+        "from": "1.0.0",
+        "to": "1.1.0"
+      },
+      "affectedApps": [
+        "adminpanel"
+      ],
       "affectedCollections": [
-        "wards", "routes", "vans", "trips", "complaints", "notices",
-        "ratings", "staff", "drivers"
+        "wards",
+        "routes",
+        "vans",
+        "trips",
+        "complaints",
+        "notices",
+        "ratings",
+        "staff",
+        "drivers"
       ],
       "affectedFields": [],
       "migration": {
@@ -477,8 +655,15 @@
       "breaking": false,
       "date": "2026-11-02",
       "author": "platform-owner",
-      "contractVersion": { "from": "1.0.0", "to": "1.1.0" },
-      "affectedApps": ["driverapp", "userapp", "adminpanel"],
+      "contractVersion": {
+        "from": "1.0.0",
+        "to": "1.1.0"
+      },
+      "affectedApps": [
+        "driverapp",
+        "userapp",
+        "adminpanel"
+      ],
       "affectedCollections": [],
       "affectedFields": [],
       "migration": {
@@ -506,8 +691,13 @@
       "breaking": false,
       "date": "2026-11-02",
       "author": "platform-owner",
-      "contractVersion": { "from": "1.0.0", "to": "1.1.0" },
-      "affectedApps": ["userapp"],
+      "contractVersion": {
+        "from": "1.0.0",
+        "to": "1.1.0"
+      },
+      "affectedApps": [
+        "userapp"
+      ],
       "affectedCollections": [],
       "affectedFields": [],
       "migration": {
@@ -538,14 +728,38 @@
       "kind": "extension",
       "app": "userapp",
       "extensionVersion": "1",
-      "affectedApps": ["userapp"],
-      "affectedCollections": ["collectionFeedback"],
+      "affectedApps": [
+        "userapp"
+      ],
+      "affectedCollections": [
+        "collectionFeedback"
+      ],
       "affectedFields": [
-        { "path": "collectionFeedback.id", "change": "added", "ownedBy": "userapp" },
-        { "path": "collectionFeedback.reason", "change": "added", "ownedBy": "userapp" },
-        { "path": "collectionFeedback.note", "change": "added", "ownedBy": "userapp" },
-        { "path": "collectionFeedback.timestamp", "change": "added", "ownedBy": "userapp" },
-        { "path": "collectionFeedback.syncStatus", "change": "added", "ownedBy": "userapp" }
+        {
+          "path": "collectionFeedback.id",
+          "change": "added",
+          "ownedBy": "userapp"
+        },
+        {
+          "path": "collectionFeedback.reason",
+          "change": "added",
+          "ownedBy": "userapp"
+        },
+        {
+          "path": "collectionFeedback.note",
+          "change": "added",
+          "ownedBy": "userapp"
+        },
+        {
+          "path": "collectionFeedback.timestamp",
+          "change": "added",
+          "ownedBy": "userapp"
+        },
+        {
+          "path": "collectionFeedback.syncStatus",
+          "change": "added",
+          "ownedBy": "userapp"
+        }
       ],
       "migration": {
         "required": true,
@@ -571,7 +785,10 @@
       "breaking": false,
       "date": "2026-11-05",
       "author": "platform-owner",
-      "contractVersion": { "from": "2.0.0", "to": "2.1.0" },
+      "contractVersion": {
+        "from": "2.0.0",
+        "to": "2.1.0"
+      },
       "affectedApps": [
         "driverapp"
       ],
@@ -605,7 +822,10 @@
       "breaking": false,
       "date": "2026-11-05",
       "author": "platform-owner",
-      "contractVersion": { "from": "2.1.0", "to": "2.2.0" },
+      "contractVersion": {
+        "from": "2.1.0",
+        "to": "2.2.0"
+      },
       "affectedApps": [
         "driverapp"
       ],
@@ -613,7 +833,10 @@
         "noticeReceipt"
       ],
       "affectedFields": [
-        { "path": "noticeReceipt.readAt", "change": "added" }
+        {
+          "path": "noticeReceipt.readAt",
+          "change": "added"
+        }
       ],
       "migration": {
         "required": true,
@@ -641,7 +864,10 @@
       "breaking": false,
       "date": "2026-11-05",
       "author": "platform-owner",
-      "contractVersion": { "from": "2.1.0", "to": "2.2.0" },
+      "contractVersion": {
+        "from": "2.1.0",
+        "to": "2.2.0"
+      },
       "affectedApps": [
         "driverapp"
       ],
@@ -662,6 +888,135 @@
         "oldFieldWritableUntil": null
       },
       "explainedIn": "CHG-0019-the-complaints-index-for-the-driver-app.md",
+      "supersedes": null
+    },
+    {
+      "id": "CHG-0020",
+      "title": "Audit who created and last changed a driver",
+      "severity": "S3",
+      "priority": "P3",
+      "breaking": false,
+      "date": "2026-11-05",
+      "author": "platform-owner",
+      "contractVersion": {
+        "from": "2.2.0",
+        "to": "2.3.0"
+      },
+      "affectedApps": [
+        "adminpanel"
+      ],
+      "affectedCollections": [
+        "drivers"
+      ],
+      "affectedFields": [
+        {
+          "path": "drivers.createdAt",
+          "change": "added"
+        },
+        {
+          "path": "drivers.createdBy",
+          "change": "added"
+        },
+        {
+          "path": "drivers.updatedAt",
+          "change": "added"
+        },
+        {
+          "path": "drivers.updatedBy",
+          "change": "added"
+        }
+      ],
+      "migration": {
+        "required": true,
+        "steps": [
+          "upsertDriver sets createdAt and createdBy once, on create, from the server clock and the staffId claim. A client cannot send either",
+          "upsertDriver sets updatedAt and updatedBy on every update, from the same two sources",
+          "adminpanel may show the four fields. It does not have to: the change is additive",
+          "A driver record created before this change has no audit fields until its next upsertDriver write. Nothing backfills it",
+          "The driver app never reads these fields. Its own driver read stays field-restricted"
+        ],
+        "deadline": null
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": null,
+        "oldFieldWritableUntil": null
+      },
+      "explainedIn": "CHG-0020-the-driver-audit-fields.md",
+      "supersedes": null
+    },
+    {
+      "id": "CHG-0021",
+      "title": "startShift clears a stale van marker instead of failing",
+      "severity": "S2",
+      "priority": "P2",
+      "breaking": false,
+      "date": "2026-11-05",
+      "author": "platform-owner",
+      "contractVersion": {
+        "from": "2.2.0",
+        "to": "2.3.0"
+      },
+      "affectedApps": [
+        "driverapp"
+      ],
+      "affectedCollections": [
+        "vans",
+        "trips"
+      ],
+      "affectedFields": [],
+      "migration": {
+        "required": true,
+        "steps": [
+          "No driver app code change. startShift now clears vans.currentTripId when the marker points at a missing trip, or at a trip whose status is not on_shift, then creates the new trip in the same transaction",
+          "staleMarker still fires when the marker points at a live trip of another van. An app that shows the staleMarker copy keeps it for that case",
+          "The repair is server-side, inside the startShift transaction. The client never clears the marker, because it cannot prove the trip is closed",
+          "The next driver on a van that died mid-shift now starts normally instead of waiting for a manual write"
+        ],
+        "deadline": null
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": null,
+        "oldFieldWritableUntil": null
+      },
+      "explainedIn": "CHG-0021-the-stale-van-marker-is-repaired-by-startshift.md",
+      "supersedes": null
+    },
+    {
+      "id": "CHG-0022",
+      "title": "Alert the ward inspector when a mock location is latched",
+      "severity": "S2",
+      "priority": "P2",
+      "breaking": false,
+      "date": "2026-11-05",
+      "author": "platform-owner",
+      "contractVersion": {
+        "from": "2.2.0",
+        "to": "2.3.0"
+      },
+      "affectedApps": [
+        "adminpanel"
+      ],
+      "affectedCollections": [
+        "trips",
+        "wards"
+      ],
+      "affectedFields": [],
+      "migration": {
+        "required": true,
+        "steps": [
+          "flagMockLocation sends one notification per unique ward inspector across trips.wardIds, on topic staff_{staffId}",
+          "The push is sent only on the first latch. A retry that finds the latch already set sends nothing, so it cannot duplicate the alert",
+          "A push failure is logged and does not fail the call. The latch is the durable record",
+          "adminpanel must receive the staff_{staffId} topic after the staff token is minted and render data.type = mock_location_alert. The topic and the payload shape already exist",
+          "No new topic, no new field, no new collection"
+        ],
+        "deadline": null
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": null,
+        "oldFieldWritableUntil": null
+      },
+      "explainedIn": "CHG-0022-the-mock-location-staff-alert.md",
       "supersedes": null
     }
   ],

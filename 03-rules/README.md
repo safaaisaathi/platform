@@ -4,7 +4,7 @@ title: The Rules Folder
 status: active
 owner: platform-owner
 updated: 2026-11-02
-contractVersion: "2.2.0"
+contractVersion: "2.3.0"
 audience: harness
 see_also:
   - ./firestore.rules

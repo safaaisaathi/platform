@@ -252,7 +252,7 @@
           "vans/{vanId}",
           "wardDuty/{date}_{wardId}"
         ],
-        "transaction": "On the van document. If van.currentTripId is set and status is on_shift, read the trip. If trip.driverId is not this driver, reject with vanHeldByAnotherDriver. If trip.vanId is not this van, reject with staleMarker. Otherwise RESUME and write nothing. Else create the trip and set the marker.",
+        "transaction": "On the van document. If van.currentTripId is set and status is on_shift, read the trip. If the trip is missing or its status is not on_shift, clear the marker and continue to create. If trip.driverId is not this driver, reject with vanHeldByAnotherDriver. If trip.vanId is not this van, reject with staleMarker. Otherwise RESUME and write nothing. Else create the trip and set the marker.",
         "wardDuty": "On create, the callable writes one wardDuty/{date}_{wardId} doc per ward in the route's wardIds, with status = in_progress. The citizen app reads those docs to show the daily tick. The citizen NEVER writes them. CHG-0011."
       },
       "resumeWritesNothing": "The resume branch creates no second trip. A resume never duplicates.",
@@ -385,13 +385,15 @@
       ],
       "authority": {
         "reads": [
-          "trips/{tripId}"
+          "trips/{tripId}",
+          "wards/{wardId}"
         ],
         "writes": [
           "trips/{tripId}"
         ],
-        "scope": "The caller's driverId claim must match trips.driverId and the trip must be on_shift. Only trips.mockLocationDetected is written, and only ever to true.",
-        "reason": "Trips are server-owned. 03-rules/firestore.strict.rules denies every client write on trips/{tripId} except the trail subcollection, because a direct client write would let two phones create two trips for one shift. So the latch cannot be a client write."
+        "scope": "The caller's driverId claim must match trips.driverId and the trip must be on_shift. Only trips.mockLocationDetected is written, and only ever to true. The wards read is only to resolve the trip's ward inspectors for the push.",
+        "reason": "Trips are server-owned. 03-rules/firestore.strict.rules denies every client write on trips/{tripId} except the trail subcollection, because a direct client write would let two phones create two trips for one shift. So the latch cannot be a client write.",
+        "push": "On the first latch only, one notification per unique inspector across trips.wardIds, on topic staff_{staffId}. The topic already exists and is published by missedCollectionAlert and escalateComplaints. A push failure is logged and does not fail the call, because the latch is the durable record. CHG-0022."
       },
       "whyACallable": "Mock detection is device-side: only the phone's OS knows a fix is mocked, so only the client can decide to flag. But the trip document is server-owned, so the client cannot write the field directly. A callable carries the client's decision across the trust boundary: the server checks ownership, writes the latch, and enforces the one-way rule.",
       "notLikeWorkerId": "CHG-0013 removed a client-supplied workerId because a forged value helped the caller by naming an arbitrary staff member. This input is the opposite: a forged flag only brands the caller's own trip as GPS-faked, so lying is against the caller's interest. The driverId still comes from the token, never from the input.",

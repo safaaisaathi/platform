@@ -27,7 +27,7 @@
     "staff_{staffId}": {
       "subscribedBy": ["adminpanel"],
       "subscribedWhen": "After the staff token is minted.",
-      "publishedBy": ["missedCollectionAlert", "escalateComplaints"],
+      "publishedBy": ["missedCollectionAlert", "escalateComplaints", "flagMockLocation"],
       "carries": "Alerts that one staff member must act on.",
       "note": "This topic is how the platform pushes to one staff member WITHOUT a device registry. PRD-2 section 0.6 already specifies it."
     },
@@ -60,6 +60,13 @@
       "to": "staff_{staffId}",
       "trigger": "A complaint passes ESCALATION_L1_HOURS or ESCALATION_L2_HOURS.",
       "priority": "HIGH"
+    },
+    "flagMockLocation": {
+      "to": "staff_{staffId}, one per unique ward inspector across trips.wardIds",
+      "trigger": "The first mock-location latch on an open trip. A retry that finds the latch already set sends nothing.",
+      "priority": "HIGH",
+      "idempotency": "trips/{tripId}.mockLocationDetected. Only the call that flips false to true sends.",
+      "note": "The recipient is the ward inspector, not a route supervisor: a route has no staff field, and the ward is the only staff linkage the trip carries. A push failure is logged and does not fail the call."
     },
     "vanOfflineWatch": {
       "to": "adminpanel:live",

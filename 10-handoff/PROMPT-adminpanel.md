@@ -4,7 +4,7 @@ title: Admin Panel Harness Brief
 status: active
 owner: platform-owner
 updated: 2026-11-03
-contractVersion: "2.2.0"
+contractVersion: "2.3.0"
 audience: harness
 see_also:
   - ./README.md
@@ -119,6 +119,8 @@ node ../platform/08-tools/sync-contract.ts .
 | 10 | **CHG-0012** | Read the raw complainant phone from `complaintPhones/{complaintId}`, and only for district staff. An inspector sees `complaints.phoneMasked` | The raw phone read is behind a district-role check |
 | 11 | **CHG-0014** | **The big one.** Replace `src/services/dataService.ts` with a Firestore repository. Move `src/services/seedData.ts` out of the runtime path into a seed script. Every screen reads through the repository | The panel loads live data after a sign-in. The localStorage prefix `safai_v3_` holds no record of truth |
 | 12 | **CHG-0014** | Delete the dead screen lineage. `A1_Login`, `A2_Overview`, `A3_LiveMap`, `A4_Complaints`, `A5_Wards`, `A6_VansRoutes`, `A7_Notices`, `A8_Reports`, `A9_Staff` are not routed by `App.tsx` | `grep -rn "from './screens/A1_\|from './screens/A2_\|from './screens/A3_\|from './screens/A4_\|from './screens/A5_\|from './screens/A6_\|from './screens/A7_\|from './screens/A8_\|from './screens/A9_" src/` gives zero hits |
+| 13 | **CHG-0020** | `upsertDriver` now writes `createdAt`, `createdBy`, `updatedAt` and `updatedBy`. Show them on the driver screen if you want; do not send them in the input | The fields are server-set. A client-sent value is ignored |
+| 14 | **CHG-0022** | Subscribe to `staff_{staffId}` after the staff token is minted, and route `data.type = mock_location_alert` to the trip or van screen. The payload carries `tripId` and `vanId` | A mock-location latch reaches the ward inspector while the trip is open |
 
 ### 4.3 The reason codes the panel must handle
 
@@ -166,7 +168,7 @@ src/services/seedData.ts      -> moves to scripts/seed.ts, not imported by the a
 
 ```json
 {
-  "contractVersion": "2.2.0",
+  "contractVersion": "2.3.0",
   "extensionVersion": "0",
   "coreChanges": {
     "CHG-0014": {
@@ -191,7 +193,7 @@ src/services/seedData.ts      -> moves to scripts/seed.ts, not imported by the a
 ### 4.7 Bump the version pin
 
 ```bash
-node ../platform/08-tools/bump-contract.ts . --contract-version=2.2.0
+node ../platform/08-tools/bump-contract.ts . --contract-version=2.3.0
 ```
 
 **The target is the manifest entry's `contractVersion.to`.** Read it out of `../platform/06-changes/manifest.json`. Never one you remember.

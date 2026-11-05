@@ -43,6 +43,24 @@
     },
     "active": {
       "type": "boolean"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the record was created. A SERVER timestamp, written once by upsertDriver. A client that sent it would be forging the audit trail."
+    },
+    "createdBy": {
+      "type": "string",
+      "description": "The staffId claim of the staff member who created the record. Written once by upsertDriver from the live staff doc, never from the input."
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When the record last changed. A SERVER timestamp, rewritten by every upsertDriver update."
+    },
+    "updatedBy": {
+      "type": "string",
+      "description": "The staffId claim of the staff member who last changed the record. Rewritten by every upsertDriver update."
     }
   }
 }

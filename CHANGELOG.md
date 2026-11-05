@@ -4,7 +4,7 @@ title: Platform Changelog
 status: active
 owner: platform-owner
 updated: 2026-11-05
-contractVersion: "2.1.0"
+contractVersion: "2.2.0"
 audience: both
 see_also:
   - ./VERSION
@@ -26,6 +26,12 @@ see_also:
 **A change to `06-changes/`, `07-guides/` or `09-reference/` does not bump `VERSION`.** A change to `02-contracts/` always does.
 
 ## [Unreleased]
+
+### Contract 2.2.0, the receipt and the index
+
+- `notices/{id}/receipts` is published as a change entry. The schema and the strict rules already existed, but nothing in the manifest named the capability, so no app checklist could track it. ([CHG-0018](06-changes/CHG-0018-the-notice-read-receipt.md))
+- `03-rules/firestore.indexes.json` gains `complaints (category ASC, wardId ASC, createdAt DESC)`. The driver app's bounded Pending Reports query sorts newest first, and the existing ascending index cannot serve it. ([CHG-0019](06-changes/CHG-0019-the-complaints-index-for-the-driver-app.md))
+- The Storage emulator is in both emulator configs, `03-rules/firebase.json` on 9199 and `03-rules/firebase.strict.json` on 9198. `storage.rules` now has a local test path.
 
 ### Contract 2.1.0, the mock-location callable
 

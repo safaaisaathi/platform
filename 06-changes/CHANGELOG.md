@@ -6,7 +6,18 @@
 
 ## [Unreleased]
 
-Nothing pending beyond 2.1.0. The extension registry gained a `mirror` path and the platform now holds a byte copy of each app-owned extension file, so a bare CI checkout can validate and compose the contract. No change entry, because no app has to act and no core shape moved.
+Nothing pending beyond 2.2.0. The extension registry gained a `mirror` path and the platform now holds a byte copy of each app-owned extension file, so a bare CI checkout can validate and compose the contract. No change entry, because no app has to act and no core shape moved.
+
+## [2.2.0] - 2026-11-05
+
+### Added
+
+- `notices/{noticeId}/receipts/{driverCode}` is a published change. The schema and the strict rules already existed; this release adds the change entry, so the manifest, the app checklist and the adoption record can see it. ([CHG-0018](CHG-0018-the-notice-read-receipt.md))
+- A `complaints` composite index on `category` ASC, `wardId` ASC, `createdAt` DESC. It serves the driver app's bounded Pending Reports query, which the existing ascending index cannot. ([CHG-0019](CHG-0019-the-complaints-index-for-the-driver-app.md))
+
+### Changed
+
+- `03-rules/firebase.json` and `03-rules/firebase.strict.json` now start the Storage emulator, on 9199 and 9198. Before this, `storage.rules` had no local test path. No change entry: the contract is unaffected.
 
 ## [2.1.0] - 2026-11-05
 

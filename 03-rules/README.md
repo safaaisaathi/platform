@@ -4,7 +4,7 @@ title: The Rules Folder
 status: active
 owner: platform-owner
 updated: 2026-11-02
-contractVersion: "2.1.0"
+contractVersion: "2.2.0"
 audience: harness
 see_also:
   - ./firestore.rules
@@ -25,7 +25,7 @@ see_also:
 | `firestore.rules` | **PHASE 1.** The loose rules. **This is what is deployed today** |
 | `firestore.strict.rules` | **PHASE 2.** The claims-based rules. The CHG-0003 target |
 | `storage.rules` | The Cloud Storage authorization. The complaint photos |
-| `firestore.indexes.json` | The composite indexes. **Four exist. More are needed** |
+| `firestore.indexes.json` | The composite indexes. **Five exist. More are needed** |
 | `firebase.json` | The emulator config for PHASE 1, and the deploy paths |
 | `firebase.strict.json` | The emulator config for PHASE 2. Different ports, so both can run at once |
 
@@ -183,7 +183,7 @@ firebase deploy --only firestore:rules
 
 **A green emulator run is not proof of index coverage.** The only place index coverage is proven is a staging project with the real indexes deployed.
 
-**The emulator also does not enforce the storage rules the way production does.** The complaint photo path is the one to check by hand.
+**The Storage emulator enforces `storage.rules`.** It is in both emulator configs: 9199 in `firebase.json`, 9198 in `firebase.strict.json`. The complaint photo path is still the one to check by hand, because production also carries the bucket-level settings that a local run does not.
 
 ## 8. The deploy order
 

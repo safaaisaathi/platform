@@ -3,7 +3,7 @@
   "$id": "https://safaaisaathi.contracts/agent-manifest.json",
   "title": "Safai Saathi platform agent manifest",
   "description": "The machine-readable map of this repository. An AI harness reads this first to learn where everything is, who owns what, and which command verifies what. It is generated from the repo layout, so it does not drift.",
-  "contractVersion": "2.1.0",
+  "contractVersion": "2.2.0",
   "root": ".",
   "paths": {
     "version": "VERSION",

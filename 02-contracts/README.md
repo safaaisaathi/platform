@@ -4,7 +4,7 @@ title: The Contract Layer
 status: active
 owner: platform-owner
 updated: 2026-11-03
-contractVersion: "2.1.0"
+contractVersion: "2.2.0"
 audience: harness
 see_also:
   - ./collections/README.md

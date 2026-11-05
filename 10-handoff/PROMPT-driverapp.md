@@ -4,7 +4,7 @@ title: Driver App Harness Brief
 status: active
 owner: platform-owner
 updated: 2026-11-02
-contractVersion: "2.1.0"
+contractVersion: "2.2.0"
 audience: harness
 see_also:
   - ./README.md
@@ -113,6 +113,8 @@ node ../platform/08-tools/sync-contract.ts .
 | 9 | **CHG-0005** | Write the trail to `trips/{id}/trail/{n}`, chunks of 1000. Stop writing `trips.gpsTrail` | No write to `gpsTrail` remains |
 | 10 | **CHG-0012** | The app must not read `complaints.phone`, `complaints.assignedPhone` or `complaints.escalatedToPhone`. They no longer exist | `grep -rn 'assignedPhone\|escalatedToPhone' lib/` gives zero hits |
 | 11 | **CHG-0017** | Call `flagMockLocation({ tripId })` where the tracking engine latches the mock flag. Do not write `trips.mockLocationDetected` directly. The strict rules deny every client trip write, so the server sets the latch | No direct `mockLocationDetected` write remains. The call is `httpsCallable('flagMockLocation')`. The banner stays local and works offline |
+| 12 | **CHG-0018** | Write `notices/{noticeId}/receipts/{driverCode}` with `readAt` when a notice is opened, and read it back to drive the unread dot. The doc id is the `driverId` claim. Do not add a receipt array to the notice document | The unread dot survives a restart. The receipt write is the only notice write. The session-local set stays as the offline fallback |
+| 13 | **CHG-0019** | Switch Pending Reports to `.orderBy('createdAt', descending: true).limit(200)` **only after** the platform has deployed the new index. Keep the ascending query until then | The query is bounded and descending. No Dart-side sort of the fetched window remains |
 
 ### 4.3 The reason codes the app must handle
 
@@ -148,7 +150,7 @@ node ../platform/08-tools/sync-contract.ts .
 
 ```json
 {
-  "contractVersion": "2.1.0",
+  "contractVersion": "2.2.0",
   "extensionVersion": "1",
   "coreChanges": {
     "CHG-0006": {
@@ -156,8 +158,7 @@ node ../platform/08-tools/sync-contract.ts .
       "urgency": "before_release",
       "progress": 0,
       "checklist": [
-        { "task": "Delete the functions/ folder", "done": false },
-        { "task": "Delete the app's own functions/ deployment, keeping the cloud_functions dependency", "done": false },
+        { "task": "Delete the functions/ folder, keeping the cloud_functions dependency", "done": false },
         { "task": "Delete functions/.env from the repo", "done": false }
       ],
       "verifiedBy": "08-tools/check-adoption.ts"
@@ -173,7 +174,7 @@ node ../platform/08-tools/sync-contract.ts .
 ### 4.6 Bump the version pin
 
 ```bash
-node ../platform/08-tools/bump-contract.ts . --contract-version=2.1.0
+node ../platform/08-tools/bump-contract.ts . --contract-version=2.2.0
 ```
 
 **The target is the manifest entry's `contractVersion.to`.** Read it out of `../platform/06-changes/manifest.json`. Never one you remember.

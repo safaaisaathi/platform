@@ -9,6 +9,10 @@
       "port": 8081,
       "host": "0.0.0.0"
     },
+    "storage": {
+      "port": 9198,
+      "host": "0.0.0.0"
+    },
     "functions": {
       "port": 5001
     },

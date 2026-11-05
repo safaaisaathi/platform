@@ -26,7 +26,9 @@
         "CHG-0014": { "status": "not_applicable", "progress": null, "note": "The admin panel owns the data layer." },
         "CHG-0015": { "status": "not_started", "progress": 0 },
         "CHG-0016": { "status": "not_applicable", "progress": null, "note": "The user app's stack is the question." },
-        "CHG-0017": { "status": "not_started", "progress": 0, "urgency": "scheduled" }
+        "CHG-0017": { "status": "not_started", "progress": 0, "urgency": "scheduled" },
+        "CHG-0018": { "status": "not_started", "progress": 0, "urgency": "scheduled" },
+        "CHG-0019": { "status": "not_started", "progress": 0, "urgency": "scheduled" }
       },
       "extensionChanges": {
         "EXT-0001": { "status": "adopted", "progress": 1, "verifiedAt": "2026-11-02T00:00:00Z" }
@@ -53,7 +55,9 @@
         "CHG-0014": { "status": "not_applicable", "progress": null, "note": "The admin panel owns the data layer." },
         "CHG-0015": { "status": "not_started", "progress": 0 },
         "CHG-0016": { "status": "not_started", "progress": 0 },
-        "CHG-0017": { "status": "not_applicable", "progress": null, "note": "The driver app owns the mock-location latch." }
+        "CHG-0017": { "status": "not_applicable", "progress": null, "note": "The driver app owns the mock-location latch." },
+        "CHG-0018": { "status": "not_applicable", "progress": null, "note": "The driver app owns the notice read receipt." },
+        "CHG-0019": { "status": "not_applicable", "progress": null, "note": "The driver app owns the bounded complaints fetch." }
       },
       "extensionChanges": {
         "EXT-0002": { "status": "not_started", "progress": 0, "note": "The extension file is registered with the platform. The app has not adopted the change in code yet." }
@@ -79,7 +83,9 @@
         "CHG-0013": { "status": "not_started", "progress": 0, "urgency": "before_release" },
         "CHG-0014": { "status": "not_started", "progress": 0 },
         "CHG-0015": { "status": "not_started", "progress": 0 },
-        "CHG-0017": { "status": "not_applicable", "progress": null, "note": "The admin panel only reads the flag." }
+        "CHG-0017": { "status": "not_applicable", "progress": null, "note": "The admin panel only reads the flag." },
+        "CHG-0018": { "status": "not_applicable", "progress": null, "note": "The admin panel does not read receipts." },
+        "CHG-0019": { "status": "not_applicable", "progress": null, "note": "The admin panel does not run this query." }
       }
     }
   },

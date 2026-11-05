@@ -84,7 +84,7 @@ see_also:
 | Cloud Functions | 23 functions in the contract. 16 callables and 7 server functions. All 23 are built in `../04-functions/` |
 | Cloud Messaging | 4 topics. `van_`, `ward_`, `staff_`, and `all` |
 | Hosting | The admin panel. Not deployed yet |
-| Emulator Suite | Local development. Auth on 9099, Firestore on 8080, Functions on 5001 |
+| Emulator Suite | Local development. Auth on 9099, Firestore on 8080, Functions on 5001, Storage on 9199 |
 
 ### 4.2 The tool install matrix, by stack
 
@@ -240,7 +240,7 @@ flutter run --dart-define=DRIVERAPP_USE_EMULATOR=true \
 
 ### 4.7 The emulator
 
-**The emulator is the default environment.** It runs Auth, Firestore and Functions on the laptop, with the real rules loaded. It needs no project credentials and no network.
+**The emulator is the default environment.** It runs Auth, Firestore, Functions and Storage on the laptop, with the real rules loaded. It needs no project credentials and no network.
 
 **There are two `firebase.json` files, and this is the biggest practical trap.**
 
@@ -253,7 +253,7 @@ flutter run --dart-define=DRIVERAPP_USE_EMULATOR=true \
 
 ```
 cd 03-rules
-npx -y firebase-tools@latest emulators:start --only auth,firestore,functions
+npx -y firebase-tools@latest emulators:start --only auth,firestore,functions,storage
 ```
 
 **The ports.**
@@ -263,6 +263,7 @@ npx -y firebase-tools@latest emulators:start --only auth,firestore,functions
 | Auth | 9099 | `../03-rules/firebase.json` |
 | Firestore | 8080 | `../03-rules/firebase.json` |
 | Functions | 5001 | The Firebase default |
+| Storage | 9199 | `../03-rules/firebase.json` |
 | Emulator UI | 4000 | Disabled in this project. `"ui": { "enabled": false }` |
 
 **How the app points at it.** The driver app already does this in `lib/core/config/firebase_bootstrap.dart`.

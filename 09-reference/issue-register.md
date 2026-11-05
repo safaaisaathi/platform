@@ -116,19 +116,19 @@ see_also:
 | **B-02** | `trips` create has no ownership check | P1 | `CHG-0003` |
 | **B-03** | `vans` update scope includes the takeover fields | P1 | `CHG-0003` |
 | **B-04** | The notices `OR` query has two hard failures. One is the 29-ward cliff | P1 | `../03-rules/firestore.indexes.json`, plus the client-side fix |
-| **B-05** | Complaints over-fetch, then filter on the client | P1 | The client repos |
+| **B-05** | Complaints over-fetch, then filter on the client | P1 | **`CHG-0019`** adds the descending index. The bounded query is the client's change |
 | **B-06** | `whereIn` is capped at 30 values | P2 | The client repos |
 | **B-07** | `trips.gpsTrail` is one unbounded array | P1 | **`CHG-0005`**. The trail subcollection |
 | **B-08** | `verifyDriverPin` is dead code that is still deployed | P1 | **`CHG-0006`** |
 | **B-09** | `setDriverPin` has a live bypass flag | P1 | **`CHG-0006`**. `DEMO_SEED_BYPASS` at `04-functions/src/index.ts:173-188` |
 | **B-10** | No App Check | P1 | The client repos. **After** the rules are tightened, not before |
-| **B-11** | `notices` has no read-state | P2 | The contract defines `noticeReceipt`. It needs a change entry |
+| **B-11** | `notices` has no read-state | P2 | **`CHG-0018`** publishes `noticeReceipt`. The schema and the strict rules were already there |
 | **B-12** | No staff push on mock-location detection | P2 | The Functions. `../02-contracts/topics.json` |
 | **B-13** | `drivers` has no audit fields | P2 | The contract |
 | **B-14** | No CI | P1 | **`../.github/workflows/contract-gate.yml`** exists now |
 | **B-15** | No Android flavors | P2 | The driver app |
 | **B-16** | Storage rules are loose and the path is meaningless | P2 | `../03-rules/storage.rules` |
-| **B-17** | The emulator suite cannot run the Functions or Storage | P2 | The driver app's CI |
+| **B-17** | The emulator suite cannot run the Functions or Storage | P2 | **`../03-rules/firebase.json`** starts Storage on 9199. Functions run from `../04-functions/` |
 | **B-18** | `readVans()` is a dead full-collection read | P2 | The client repos |
 | **B-19** | Nothing clears a stale `vans.currentTripId` | P2 | `../02-contracts/callables.json`. `startShift` handles `staleMarker` |
 | **B-20** | The `functions/lib/` build artifact is stale. **A deploy trap** | P1 | `../04-functions/README.md` section 10 |

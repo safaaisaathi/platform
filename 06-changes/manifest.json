@@ -3,7 +3,7 @@
   "$id": "https://safaaisaathi.contracts/changes/manifest.json",
   "title": "Safai Saathi change manifest",
   "description": "The machine-readable list of every change to the contract. Each entry pairs with a CHG-nnn-*.md file in this folder. The two change together, never one alone.",
-  "contractVersion": "2.1.0",
+  "contractVersion": "2.2.0",
   "generatedAt": "2026-11-05",
   "changes": [
     {
@@ -595,6 +595,73 @@
         "oldFieldWritableUntil": null
       },
       "explainedIn": "CHG-0017-the-mock-location-latch-is-a-callable.md",
+      "supersedes": null
+    },
+    {
+      "id": "CHG-0018",
+      "title": "Publish the notice read receipt",
+      "severity": "S2",
+      "priority": "P2",
+      "breaking": false,
+      "date": "2026-11-05",
+      "author": "platform-owner",
+      "contractVersion": { "from": "2.1.0", "to": "2.2.0" },
+      "affectedApps": [
+        "driverapp"
+      ],
+      "affectedCollections": [
+        "noticeReceipt"
+      ],
+      "affectedFields": [
+        { "path": "noticeReceipt.readAt", "change": "added" }
+      ],
+      "migration": {
+        "required": true,
+        "steps": [
+          "Write notices/{noticeId}/receipts/{driverCode} with readAt when the driver opens a notice. The doc id is the driverId claim, never a client-chosen value",
+          "Keep the session-local unread set as the fallback until the write path works. A failed write leaves the dot on; it never loses a notice",
+          "Compute the unread dot from the local cache plus the receipts that have synced, so an offline driver still sees the right state",
+          "The strict rules allow this write already. The loose PHASE 1 rules do not match the subcollection, so the receipt write only starts working after the CHG-0003 rules switch",
+          "Do not add a receipt array to the notice document. A targetType of all notice is read by every driver, so an array would grow without bound"
+        ],
+        "deadline": null
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": null,
+        "oldFieldWritableUntil": null
+      },
+      "explainedIn": "CHG-0018-the-notice-read-receipt.md",
+      "supersedes": null
+    },
+    {
+      "id": "CHG-0019",
+      "title": "The complaints index for the driver app's bounded fetch",
+      "severity": "S3",
+      "priority": "P3",
+      "breaking": false,
+      "date": "2026-11-05",
+      "author": "platform-owner",
+      "contractVersion": { "from": "2.1.0", "to": "2.2.0" },
+      "affectedApps": [
+        "driverapp"
+      ],
+      "affectedCollections": [
+        "complaints"
+      ],
+      "affectedFields": [],
+      "migration": {
+        "required": false,
+        "steps": [
+          "The platform deploys 03-rules/firestore.indexes.json. The index is additive and changes no document shape",
+          "driverapp switches the bounded query to orderBy createdAt descending only after the index is live. A missing index fails the query with FAILED_PRECONDITION, so the order of these two steps matters"
+        ],
+        "deadline": null
+      },
+      "deprecation": {
+        "oldFieldReadableUntil": null,
+        "oldFieldWritableUntil": null
+      },
+      "explainedIn": "CHG-0019-the-complaints-index-for-the-driver-app.md",
       "supersedes": null
     }
   ],

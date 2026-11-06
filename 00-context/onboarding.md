@@ -3,7 +3,7 @@ id: onboarding
 title: Onboarding
 status: frozen
 owner: platform-owner
-updated: 2026-11-01
+updated: 2026-11-06
 contractVersion: "1.0.0"
 audience: human
 see_also:
@@ -63,17 +63,21 @@ see_also:
 ## The emulator
 
 ```bash
+cd platform/03-rules
 npx -y firebase-tools@latest emulators:start
 ```
 
-**The emulator config is in `03-rules/firebase.json`.** It runs the auth and the Firestore emulators.
+**The emulator config is in `03-rules/firebase.json`.** It starts auth, Firestore, Storage and the Functions emulator.
 
-**Two caveats you must know.**
+**Start from `03-rules/`, not the platform root.** The root `firebase.json` is functions-only on purpose and carries no `emulators` block, so a root start would run the emulators without the repo's rules.
+
+**Three caveats you must know.**
 
 | Caveat | What it means |
 |---|---|
 | **The emulator does NOT enforce composite indexes** | A green emulator run is **not** proof that your query has an index. Deploy to staging and check |
 | **The emulator does not have real FCM** | A push you see locally is a mock. Test the real push on staging |
+| **A client API key still needs the real shape** | The Android Functions SDK rejects a placeholder such as `demo-placeholder-key` before the request leaves the phone. Use a fake key with `AIza` plus 35 characters. The emulator accepts any key, so no secret is needed |
 
 ## The Firebase config, in one table
 

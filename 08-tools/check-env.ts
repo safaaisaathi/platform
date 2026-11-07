@@ -4,6 +4,8 @@
 // three questions a deploy is blocked on, without printing any secret value:
 //
 //   - is the project's billing account enabled, and is the account open?
+//   - are Application Default Credentials present, which the Admin SDK and the
+//     backfill script need? The Firebase CLI login is not the same credential
 //   - which of the defineSecret() names already exist in Secret Manager?
 //   - which Cloud Functions are deployed, and on what runtime?
 //
@@ -23,7 +25,7 @@
 // Exits 0 when the report was produced, 1 when no access token could be found.
 
 import { execFile } from 'node:child_process';
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -35,6 +37,7 @@ import { REPO_ROOT, isJsonObject, type JsonObject } from './lib.ts';
 const run = promisify(execFile);
 
 const FIREBASE_CONFIG = path.join(os.homedir(), '.config', 'configstore', 'firebase-tools.json');
+const ADC_PATH = path.join(os.homedir(), '.config', 'gcloud', 'application_default_credentials.json');
 const FIREBASE_CLI_CLIENT = {
   id: '563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com',
   secret: 'j9iVZfS8kkCEFUPaAeJV0sAi',
@@ -42,6 +45,7 @@ const FIREBASE_CLI_CLIENT = {
 
 type EnvReport = {
   project: string;
+  adc: { present: boolean; path: string | null };
   billing: { enabled: boolean | null; account: string | null; open: boolean | null; name: string | null };
   secretManagerApi: string | null;
   secrets: { expected: string[]; present: string[] | null; missing: string[] };
@@ -140,9 +144,28 @@ async function expectedSecrets(dir: string): Promise<string[]> {
   return [...names].sort();
 }
 
+// Application Default Credentials are what the Admin SDK and the backfill
+// script use. The Firebase CLI login is a different credential and does not
+// satisfy them. Only the presence and the path are reported here.
+async function applicationDefaultCredentials(): Promise<{ present: boolean; path: string | null }> {
+  const envPath = process.env['GOOGLE_APPLICATION_CREDENTIALS'];
+  if (envPath !== undefined && envPath.length > 0) {
+    const ok = await stat(envPath)
+      .then((entry) => entry.isFile())
+      .catch(() => false);
+    if (ok) return { present: true, path: envPath };
+  }
+
+  const ok = await stat(ADC_PATH)
+    .then((entry) => entry.isFile())
+    .catch(() => false);
+  return { present: ok, path: ok ? ADC_PATH : null };
+}
+
 async function check(project: string): Promise<EnvReport> {
   const report: EnvReport = {
     project,
+    adc: await applicationDefaultCredentials(),
     billing: { enabled: null, account: null, open: null, name: null },
     secretManagerApi: null,
     secrets: { expected: await expectedSecrets(path.join(REPO_ROOT, '04-functions', 'src')), present: null, missing: [] },
@@ -236,6 +259,14 @@ async function check(project: string): Promise<EnvReport> {
 
 function print(report: EnvReport): void {
   console.log(`project: ${report.project}`);
+
+  if (report.adc.present && report.adc.path !== null) {
+    console.log(`application default credentials: present (${report.adc.path})`);
+  } else {
+    console.log(
+      'application default credentials: missing, the live backfill dry run needs them (gcloud auth application-default login)'
+    );
+  }
 
   const billing = report.billing;
   if (billing.enabled === null) {

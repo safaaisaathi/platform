@@ -18,17 +18,23 @@
 // Usage:
 //   node check-adoption.ts <app-repo>   (or set APP_REPO, default ".")
 //   node check-adoption.ts --write      regenerate the impact matrix
+//   node check-adoption.ts --check      fail when the impact matrix is stale
 //   node check-adoption.ts --write --source=report
+//   node check-adoption.ts --check --source=report
 //
 // The --write mode regenerates section 1 of 06-changes/impact-matrix.md from
 // the manifest and the adoption records, so the matrix is never hand-edited
-// and never drifts from the machine log.
+// and never drifts from the machine log. --check renders the same section,
+// compares it with the committed file, writes nothing and exits 1 when they
+// differ. Both use the same renderer, so they cannot disagree.
 //
 // By default --write prefers a sibling app checkout, because that file is the
 // app's own truth. It refuses to write when a checkout pins an older contract
 // version than 06-changes/adoption.json already reports: that checkout is
 // stale, and writing from it would silently roll the matrix back. Pass
-// --source=report to use the committed report instead.
+// --source=report to use the committed report instead. --check defaults to the
+// report, because CI has no sibling checkouts and a local stale checkout must
+// not fail the gate.
 
 import { readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -271,9 +277,18 @@ async function collectMatrixRecords(source: MatrixSource): Promise<MatrixRecords
   return { records, sources, stale };
 }
 
-// Rewrites the generated block of the impact matrix in place.
-async function writeImpactMatrix(changes: JsonObject[]): Promise<void> {
-  const source: MatrixSource = process.argv.includes('--source=report') ? 'report' : 'auto';
+// Reads --source=..., or uses the fallback. --write falls back to auto (a
+// checkout is the app's truth); --check falls back to report (CI has no
+// checkouts and a stale local checkout must not fail the gate).
+function matrixSource(fallback: MatrixSource): MatrixSource {
+  if (process.argv.includes('--source=report')) return 'report';
+  if (process.argv.includes('--source=auto')) return 'auto';
+  return fallback;
+}
+
+// Renders the generated section, sharing one renderer with --write so the two
+// modes cannot disagree.
+async function renderMatrixSection(source: MatrixSource, changes: JsonObject[]): Promise<string> {
   const { records, sources, stale } = await collectMatrixRecords(source);
 
   for (const line of sources) console.log(`matrix source: ${line}`);
@@ -285,7 +300,12 @@ async function writeImpactMatrix(changes: JsonObject[]): Promise<void> {
     ]);
   }
 
-  const section = buildMatrixSection(changes, records);
+  return buildMatrixSection(changes, records);
+}
+
+// Rewrites the generated block of the impact matrix in place.
+async function writeImpactMatrix(changes: JsonObject[]): Promise<void> {
+  const section = await renderMatrixSection(matrixSource('auto'), changes);
 
   const text = await readFile(MATRIX_PATH, 'utf8');
   const begin = text.indexOf(MATRIX_BEGIN);
@@ -301,12 +321,37 @@ async function writeImpactMatrix(changes: JsonObject[]): Promise<void> {
   console.log(`wrote the generated section of ${path.relative(process.cwd(), MATRIX_PATH)}`);
 }
 
+async function checkImpactMatrix(changes: JsonObject[]): Promise<void> {
+  const section = await renderMatrixSection(matrixSource('report'), changes);
+
+  const text = await readFile(MATRIX_PATH, 'utf8');
+  const begin = text.indexOf(MATRIX_BEGIN);
+  const end = text.indexOf(MATRIX_END);
+  if (begin < 0 || end < 0 || end < begin) {
+    printErrors(HEADER, [
+      `${MATRIX_PATH} has no generated block. It must contain ${MATRIX_BEGIN} and ${MATRIX_END}.`,
+    ]);
+  }
+
+  const current = text.slice(begin + MATRIX_BEGIN.length, end).trim();
+  if (current !== section.trim()) {
+    printErrors(HEADER, [
+      `${path.relative(process.cwd(), MATRIX_PATH)} is stale. Run node 08-tools/check-adoption.ts --write.`,
+    ]);
+  }
+
+  ok('impact matrix is current');
+}
+
 async function main(): Promise<void> {
   const errors: string[] = [];
   const notes: string[] = [];
 
-  // The --write mode regenerates the impact matrix. It needs no app repo.
-  if (process.argv.includes('--write')) {
+  // --write regenerates the impact matrix; --check compares it. Neither needs
+  // an app repo.
+  const writeOnly = process.argv.includes('--write');
+  const checkOnly = process.argv.includes('--check');
+  if (writeOnly || checkOnly) {
     const manifestRaw = await tryReadJson(MANIFEST_PATH);
     if (manifestRaw === undefined || !isJsonObject(manifestRaw)) {
       printErrors(HEADER, ['06-changes/manifest.json must be a JSON object']);
@@ -314,6 +359,10 @@ async function main(): Promise<void> {
     const changes: JsonObject[] = [];
     for (const raw of asArray(manifestRaw['changes'] ?? [], 'manifest.json "changes"')) {
       if (isJsonObject(raw)) changes.push(raw);
+    }
+    if (checkOnly && !writeOnly) {
+      await checkImpactMatrix(changes);
+      return;
     }
     await writeImpactMatrix(changes);
     ok('impact matrix regenerated');

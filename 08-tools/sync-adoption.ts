@@ -24,6 +24,11 @@
 // disagrees with the visible checkouts; an app with no checkout is skipped,
 // because the platform's CI checks out only this repo.
 //
+// --check also treats a checkout that pins an older contract version than the
+// report as stale, not as drift: it keeps the report's entry for that app and
+// prints a note. --write is unchanged and still writes from the visible
+// checkout, because that file is the source of truth for a new report.
+//
 // After it writes, run check-adoption.ts --write to regenerate the impact
 // matrix from the new report.
 
@@ -64,6 +69,28 @@ function affectedAppsOf(change: JsonObject): string[] {
 function imageOf(value: Json): Json {
   return JSON.parse(JSON.stringify(value)) as Json;
 }
+
+// Compares two dotted contract versions. A missing version cannot be compared,
+// so it reports equal.
+function compareVersions(a: string | undefined, b: string | undefined): number {
+  if (a === undefined || b === undefined) return 0;
+  const left = a.split('.').map((part) => Number.parseInt(part, 10));
+  const right = b.split('.').map((part) => Number.parseInt(part, 10));
+  const length = Math.max(left.length, right.length);
+  for (let index = 0; index < length; index += 1) {
+    const one = Number.isNaN(left[index]) ? 0 : left[index] ?? 0;
+    const two = Number.isNaN(right[index]) ? 0 : right[index] ?? 0;
+    if (one !== two) return one < two ? -1 : 1;
+  }
+  return 0;
+}
+
+type CheckoutView = {
+  app: string;
+  path: string;
+  visible: boolean;
+  version: string | undefined;
+};
 
 // Sorted-key stringify, so two JSON documents compare by value and not by the
 // order the keys happen to sit in on disk.
@@ -187,7 +214,12 @@ function buildChanges(
   return { coreChanges, extensionChanges };
 }
 
-async function buildReport(): Promise<{ report: JsonObject; skipped: string[]; notes: string[] }> {
+async function buildReport(): Promise<{
+  report: JsonObject;
+  skipped: string[];
+  notes: string[];
+  checkouts: CheckoutView[];
+}> {
   const manifestRaw = await readJson(MANIFEST_PATH);
   const changes: ChangeEntry[] = [];
   for (const raw of asArray(manifestRaw['changes'] ?? [], 'manifest.json "changes"')) {
@@ -214,12 +246,14 @@ async function buildReport(): Promise<{ report: JsonObject; skipped: string[]; n
 
   const skipped: string[] = [];
   const notes: string[] = [];
+  const checkouts: CheckoutView[] = [];
   const apps: JsonObject = {};
 
   for (const app of APPS) {
     const repoDir = repoDirFor(app, overrides);
     const repoStat = await stat(repoDir).catch(() => undefined);
     const repoVisible = repoStat !== undefined && repoStat.isDirectory();
+    checkouts.push({ app, path: repoDir, visible: repoVisible, version: undefined });
     if (!repoVisible) {
       skipped.push(app);
       // No checkout means no evidence. Keep the entry that is already in the
@@ -240,6 +274,8 @@ async function buildReport(): Promise<{ report: JsonObject; skipped: string[]; n
       printErrors(HEADER, [`${adoptedPath} must be a JSON object`]);
     }
     const own = adoptedRaw === undefined ? {} : (adoptedRaw as JsonObject);
+    checkouts[checkouts.length - 1].version =
+      typeof own['contractVersion'] === 'string' ? own['contractVersion'] : undefined;
 
     const ownCore = isJsonObject(own['coreChanges']) ? own['coreChanges'] : {};
     const ownExtensions = isJsonObject(own['extensionChanges']) ? own['extensionChanges'] : {};
@@ -310,12 +346,12 @@ async function buildReport(): Promise<{ report: JsonObject; skipped: string[]; n
     apps,
   };
 
-  return { report, skipped, notes };
+  return { report, skipped, notes, checkouts };
 }
 
 async function main(): Promise<void> {
   const checkOnly = process.argv.includes('--check');
-  const { report, skipped, notes } = await buildReport();
+  const { report, skipped, notes, checkouts } = await buildReport();
 
   for (const note of notes) console.log(`  note: ${note}`);
   for (const app of skipped) {
@@ -327,6 +363,32 @@ async function main(): Promise<void> {
     if (currentRaw === undefined) {
       printErrors(HEADER, [`${REPORT_PATH} is missing. Run node 08-tools/sync-adoption.ts`]);
     }
+
+    // --check only: a checkout older than the committed report is stale, not a
+    // regression. Keep the report's entry for that app so the comparison runs
+    // against the same truth the report already holds. --write is unchanged
+    // and still writes from the visible checkout.
+    const reportApps = isJsonObject(report['apps']) ? report['apps'] : undefined;
+    const currentApps =
+      isJsonObject(currentRaw) && isJsonObject(currentRaw['apps']) ? currentRaw['apps'] : undefined;
+    if (reportApps !== undefined && currentApps !== undefined) {
+      for (const checkout of checkouts) {
+        if (!checkout.visible) continue;
+        const carried = currentApps[checkout.app];
+        if (!isJsonObject(carried)) continue;
+        const reportedVersion =
+          typeof carried['contractVersion'] === 'string' ? carried['contractVersion'] : undefined;
+        if (compareVersions(checkout.version, reportedVersion) < 0) {
+          reportApps[checkout.app] = imageOf(carried);
+          console.log(
+            `  note: ${checkout.app}: checkout ${path.relative(process.cwd(), checkout.path)} ` +
+              `pins ${checkout.version ?? 'none'}, the report pins ${reportedVersion ?? 'none'}; ` +
+              'using the report for --check',
+          );
+        }
+      }
+    }
+
     if (stable(withoutGeneratedAt(report)) !== stable(withoutGeneratedAt(currentRaw))) {
       printErrors(HEADER, [
         '06-changes/adoption.json is stale. Run node 08-tools/sync-adoption.ts, ' +

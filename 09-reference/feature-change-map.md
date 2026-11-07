@@ -170,13 +170,13 @@ safaaisaathi, contract 2.3.0
 
 ├── CHG-0002 [S1 P1] Move the raw driver phone to staffPhones and mask it at the source
     apps      driverapp, adminpanel
-    adoption  driverapp not_started, userapp not_applicable, adminpanel not_started
+    adoption  driverapp adopted, userapp not_applicable, adminpanel not_started
     features  admin-dispatch, shift-operations
     scope     shared
 
 ├── CHG-0003 [S1 P0] Scope the Firestore rules by custom claims instead of by signed-in
     apps      driverapp, userapp, adminpanel
-    adoption  driverapp not_started, userapp not_started, adminpanel not_started
+    adoption  driverapp adopted, userapp not_started, adminpanel not_started
     features  admin-dispatch, arrival-notification, citizen-complaint, live-van-tracking, shift-operations
     scope     contract-wide
 
@@ -188,13 +188,13 @@ safaaisaathi, contract 2.3.0
 
 ├── CHG-0005 [S1 P1] Shard the GPS trail into a trail subcollection
     apps      driverapp
-    adoption  driverapp not_started, userapp not_applicable, adminpanel not_applicable
+    adoption  driverapp adopted, userapp not_applicable, adminpanel not_applicable
     features  admin-dispatch, arrival-notification, shift-operations
     scope     shared
 
 ├── CHG-0006 [S1 P1] Delete verifyDriverPin, setDriverPin and the vanSecrets collection
     apps      driverapp
-    adoption  driverapp not_started, userapp not_applicable, adminpanel not_applicable
+    adoption  driverapp adopted, userapp not_applicable, adminpanel not_applicable
     features  none
     scope     cross-cutting
 
@@ -206,25 +206,25 @@ safaaisaathi, contract 2.3.0
 
 ├── CHG-0008 [S1 P0] Put all three apps on one Firebase project
     apps      driverapp, userapp, adminpanel
-    adoption  driverapp not_started, userapp not_started, adminpanel not_started
+    adoption  driverapp adopted, userapp not_started, adminpanel not_started
     features  none
     scope     cross-cutting
 
 ├── CHG-0009 [S1 P1] Move the backend source into the platform repo and delete the copies
     apps      driverapp, userapp, adminpanel
-    adoption  driverapp not_started, userapp not_started, adminpanel not_started
+    adoption  driverapp adopted, userapp not_started, adminpanel not_started
     features  none
     scope     cross-cutting
 
 ├── CHG-0010 [S1 P1] Adopt the wider complaint statuses and categories
     apps      driverapp, userapp, adminpanel
-    adoption  driverapp not_started, userapp not_started, adminpanel not_started
+    adoption  driverapp adopted, userapp not_started, adminpanel not_started
     features  admin-dispatch, citizen-complaint
     scope     shared
 
 ├── CHG-0011 [S0 P0] The server writes the ward duty board, not the citizen
     apps      driverapp, userapp, adminpanel
-    adoption  driverapp not_started, userapp not_started, adminpanel not_started
+    adoption  driverapp adopted, userapp not_started, adminpanel not_started
     features  admin-dispatch, shift-operations
     scope     shared
 
@@ -248,7 +248,7 @@ safaaisaathi, contract 2.3.0
 
 ├── CHG-0015 [S2 P3] Fix the PRD pointers and compute the source hash
     apps      driverapp, userapp, adminpanel
-    adoption  driverapp not_started, userapp not_started, adminpanel not_started
+    adoption  driverapp adopted, userapp not_started, adminpanel not_started
     features  none
     scope     cross-cutting
 
@@ -260,19 +260,19 @@ safaaisaathi, contract 2.3.0
 
 ├── CHG-0017 [S2 P2] The mock-location latch is set by a callable, not a client trip write
     apps      driverapp
-    adoption  driverapp not_started, userapp not_applicable, adminpanel not_applicable
+    adoption  driverapp adopted, userapp not_applicable, adminpanel not_applicable
     features  admin-dispatch, arrival-notification, shift-operations
     scope     shared
 
 ├── CHG-0018 [S2 P2] Publish the notice read receipt
     apps      driverapp
-    adoption  driverapp not_started, userapp not_applicable, adminpanel not_applicable
+    adoption  driverapp adopted, userapp not_applicable, adminpanel not_applicable
     features  none
     scope     unmapped
 
 ├── CHG-0019 [S3 P3] The complaints index for the driver app's bounded fetch
     apps      driverapp
-    adoption  driverapp not_started, userapp not_applicable, adminpanel not_applicable
+    adoption  driverapp adopted, userapp not_applicable, adminpanel not_applicable
     features  admin-dispatch, citizen-complaint
     scope     shared
 
@@ -284,7 +284,7 @@ safaaisaathi, contract 2.3.0
 
 ├── CHG-0021 [S2 P2] startShift clears a stale van marker instead of failing
     apps      driverapp
-    adoption  driverapp not_started, userapp not_applicable, adminpanel not_applicable
+    adoption  driverapp adopted, userapp not_applicable, adminpanel not_applicable
     features  admin-dispatch, arrival-notification, live-van-tracking, shift-operations
     scope     contract-wide
 

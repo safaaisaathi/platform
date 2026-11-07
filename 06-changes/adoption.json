@@ -3,7 +3,7 @@
   "$id": "https://safaaisaathi.contracts/changes/adoption.json",
   "title": "Safai Saathi adoption record",
   "description": "Who has caught up with which change. Each app updates its own record in its own repo, in .contract/adopted.json. This file is the platform's aggregated view. It is a REPORT, not a source of truth. The truth is each app's own file.",
-  "generatedAt": "2026-11-05",
+  "generatedAt": "2026-11-07",
   "x-rules": {
     "sourceOfTruth": "Each app's own .contract/adopted.json in its own repo. This file is generated from those files and this repo's manifest. An app with no file shows contractVersion null and adoptionFile null, and its statuses are derived from the manifest, never carried as evidence.",
     "noChecklistNoProgress": "An app with no checklist shows 0 percent, not 100 percent.",
@@ -15,27 +15,70 @@
   "apps": {
     "driverapp": {
       "repo": "safaaisaathi/driverapp",
-      "contractVersion": "1.0.0",
+      "contractVersion": "2.3.0",
       "extensionVersion": "1",
       "adoptionFile": ".contract/adopted.json",
       "coreChanges": {
         "CHG-0001": {
           "status": "adopted",
           "progress": 1,
+          "verifiedBy": "safaaisaathi/driverapp#32",
           "verifiedAt": "2026-11-02T00:00:00Z",
+          "checklist": [
+            {
+              "task": "Confirm every persisted field matches the frozen core shape",
+              "done": true
+            }
+          ],
           "note": "The app already matches the frozen collection and field contract. The write-path audit on 2026-11-02 found every persisted field except trips.id to be exactly the core shape."
         },
         "CHG-0002": {
-          "status": "not_started",
-          "progress": 0,
+          "status": "adopted",
+          "progress": 1,
+          "verifiedBy": "safaaisaathi/driverapp#32",
           "urgency": "before_release",
-          "note": "The driver app READS drivers.phone from the drivers doc. The core schema now says phoneMasked, and the raw phone moves to staffPhones. The driver app's Driver model still carries a raw phone field at lib/core/models/driver.dart:88. It reads the driver doc but never writes it, so the migration is read-side only: read phoneMasked, and show the masked form."
+          "verifiedAt": "2026-11-04T00:00:00Z",
+          "checklist": [
+            {
+              "task": "Read drivers.phoneMasked and show the mask on the confirm card",
+              "done": true
+            },
+            {
+              "task": "Remove the raw drivers.phone read and the client-side masking helper",
+              "done": true
+            }
+          ],
+          "note": "The Driver model carries phoneMasked; the server masks the value with the PHONE_MASK_FORMAT (98XXXXXX10) and the app never re-masks. Read-side only: the app never wrote the driver doc."
         },
         "CHG-0003": {
-          "status": "not_started",
-          "progress": 0,
+          "status": "adopted",
+          "progress": 1,
+          "verifiedBy": "safaaisaathi/driverapp#32",
           "urgency": "immediate",
-          "note": "The driver app signs in anonymously and has no custom claims yet. It needs the vanId and driverId claims from bindDeviceToVan before the tightened rules can scope it. This is the P0 item and it blocks the rules deploy."
+          "verifiedAt": "2026-11-04T00:00:00Z",
+          "checklist": [
+            {
+              "task": "Call bindDeviceToVan({ driverCode, installId }) then signInWithCustomToken before any read",
+              "done": true
+            },
+            {
+              "task": "Call startShift({ driverId, date }) and sign in with the returned currentTripId token",
+              "done": true
+            },
+            {
+              "task": "Call endShift({ tripId })",
+              "done": true
+            },
+            {
+              "task": "Call markWardDone({ tripId, wardId, flagged })",
+              "done": true
+            },
+            {
+              "task": "Map the bind/start reason codes to localized copy",
+              "done": true
+            }
+          ],
+          "note": "Anonymous sign-in is gone with no fallback: a failed bind shows the server reason code. The app reads its scoped docs only after the bind. The trip create/ward mark/shift close client writes were deleted; the server owns them."
         },
         "CHG-0004": {
           "status": "not_applicable",
@@ -43,16 +86,52 @@
           "note": "The admin panel is the only affected app. The driver app never writes an admin-owned collection."
         },
         "CHG-0005": {
-          "status": "not_started",
-          "progress": 0,
+          "status": "adopted",
+          "progress": 1,
+          "verifiedBy": "safaaisaathi/driverapp#32",
           "urgency": "before_release",
-          "note": "The driver app still appends the whole GPS trail into trips.gpsTrail as one array. The sharded trail lives in trips/{id}/trail subcollection documents with the trailChunk schema. The write path is lib/core/repositories/firestore/firestore_trips_repository.dart:34-38 and the Hive buffer at lib/features/tracking/data/hive_trail_buffer.dart."
+          "verifiedAt": "2026-11-04T00:00:00Z",
+          "checklist": [
+            {
+              "task": "Write the GPS trail to trips/{id}/trail/{n}",
+              "done": true
+            },
+            {
+              "task": "Chunk at 1000 points per document with {points, from, to}",
+              "done": true
+            },
+            {
+              "task": "Stop writing trips.gpsTrail",
+              "done": true
+            }
+          ],
+          "note": "The tracking flush writes trailChunk documents through the repository; the legacy gpsTrail array write was removed from the app."
         },
         "CHG-0006": {
-          "status": "not_started",
-          "progress": 0,
+          "status": "adopted",
+          "progress": 1,
+          "verifiedBy": "safaaisaathi/driverapp#32",
           "urgency": "before_release",
-          "note": "The driver app must stop calling verifyDriverPin and setDriverPin, and the Functions source must delete both, including the DEMO_SEED_BYPASS write path. A grep for verifyDriverPin, setDriverPin, vanSecrets and DEMO_SEED_BYPASS across lib/ and functions/src/ must return zero hits."
+          "verifiedAt": "2026-11-04T00:00:00Z",
+          "checklist": [
+            {
+              "task": "Delete the functions/ copy and functions/.env from the repo",
+              "done": true
+            },
+            {
+              "task": "Remove the functions block from firebase.json",
+              "done": true
+            },
+            {
+              "task": "Keep the cloud_functions CLIENT package for the CHG-0003 callables",
+              "done": true
+            },
+            {
+              "task": "Grep verifyDriverPin|setDriverPin|vanSecrets|DEMO_SEED_BYPASS across lib/ scripts/ pubspec.yaml returns zero hits",
+              "done": true
+            }
+          ],
+          "note": "The manifest's step 'Delete the cloud_functions dependency from pubspec.yaml' conflicts with CHG-0003: the app must call startShift/endShift/markWardDone. The client package stays; only the app's own backend copy was deleted."
         },
         "CHG-0007": {
           "status": "not_applicable",
@@ -60,29 +139,77 @@
           "note": "The arrival alert radius is a server-side constant. The driver app does not compute it and does not show the citizen's arrival screen."
         },
         "CHG-0008": {
-          "status": "not_started",
-          "progress": 0,
-          "urgency": "before_release"
+          "status": "adopted",
+          "progress": 1,
+          "verifiedBy": "safaaisaathi/driverapp#32",
+          "urgency": "before_release",
+          "verifiedAt": "2026-11-04T00:00:00Z",
+          "checklist": [
+            {
+              "task": "Verify every Firebase config names safaaisaathi-63a87",
+              "done": true
+            },
+            {
+              "task": "Remove the driver-app-demo and test-project names",
+              "done": true
+            }
+          ],
+          "note": "firebase_options.dart and the bootstrap name the one project; no hardcoded fallback project id remains."
         },
         "CHG-0009": {
-          "status": "not_started",
-          "progress": 0,
-          "urgency": "before_release"
+          "status": "adopted",
+          "progress": 1,
+          "verifiedBy": "safaaisaathi/driverapp#32",
+          "urgency": "before_release",
+          "verifiedAt": "2026-11-04T00:00:00Z",
+          "checklist": [
+            {
+              "task": "Delete the app's backend copy",
+              "done": true
+            },
+            {
+              "task": "Grep onCall|onWrite|onSchedule in lib/ returns zero hits",
+              "done": true
+            }
+          ],
+          "note": "The backend lives only at platform/04-functions. The app keeps only the callable clients."
         },
         "CHG-0010": {
-          "status": "not_started",
-          "progress": 0,
-          "urgency": "before_release"
+          "status": "adopted",
+          "progress": 1,
+          "verifiedBy": "safaaisaathi/driverapp#32",
+          "urgency": "before_release",
+          "verifiedAt": "2026-11-04T00:00:00Z",
+          "checklist": [
+            {
+              "task": "Widen ComplaintStatus to the seven contract values",
+              "done": true
+            }
+          ],
+          "note": "pending_verification, auto_resolved and reopened join the original four. Stored data is not migrated: the original values stay valid."
         },
         "CHG-0011": {
-          "status": "not_started",
-          "progress": 0,
-          "urgency": "before_release"
+          "status": "adopted",
+          "progress": 1,
+          "verifiedBy": "safaaisaathi/driverapp#32",
+          "urgency": "immediate",
+          "verifiedAt": "2026-11-04T00:00:00Z",
+          "checklist": [
+            {
+              "task": "Call markWardDone; the server writes wardDuty",
+              "done": true
+            },
+            {
+              "task": "Delete any direct wardDuty write from the app",
+              "done": true
+            }
+          ],
+          "note": "The app never writes wardDuty. The ward duty board is created server-side by the markWardDone callable."
         },
         "CHG-0012": {
           "status": "not_applicable",
           "progress": null,
-          "note": "The driver app never held the raw complainant phone. It still must stop reading complaints.phone."
+          "note": "The driver app never held the raw complainant phone and does not read complaints.phone, assignedPhone or escalatedToPhone."
         },
         "CHG-0013": {
           "status": "not_applicable",
@@ -95,8 +222,17 @@
           "note": "The admin panel owns the data layer."
         },
         "CHG-0015": {
-          "status": "not_started",
-          "progress": 0
+          "status": "adopted",
+          "progress": 1,
+          "verifiedBy": "safaaisaathi/driverapp#32",
+          "verifiedAt": "2026-11-04T00:00:00Z",
+          "checklist": [
+            {
+              "task": "Confirm docs/PRD-2-driver-app.md matches the platform pointer",
+              "done": true
+            }
+          ],
+          "note": "The platform pointer already names docs/PRD-2-driver-app.md and the file is at that path. The hash is a platform-owner action, not the app's."
         },
         "CHG-0016": {
           "status": "not_applicable",
@@ -104,40 +240,120 @@
           "note": "The user app's stack is the question."
         },
         "CHG-0017": {
-          "status": "not_started",
-          "progress": 0,
-          "urgency": "scheduled"
+          "status": "adopted",
+          "progress": 1,
+          "verifiedBy": "safaaisaathi/driverapp#40",
+          "verifiedAt": "2026-11-05T00:00:00Z",
+          "checklist": [
+            {
+              "task": "Call flagMockLocation({ tripId }) from the tracking engine where the direct trip write was",
+              "done": true
+            },
+            {
+              "task": "Latch locally after the call succeeds, as today",
+              "done": true
+            },
+            {
+              "task": "Retry the call on reconnect if it failed offline",
+              "done": true
+            },
+            {
+              "task": "Never send detected: false and never try to clear the latch",
+              "done": true
+            }
+          ],
+          "note": "The engine keeps the local latch for the banner and persists it through the callable. A failed call retries on the regular GPS cadence, so a reconnect lands it without another mocked fix. No client trip write is attempted."
         },
         "CHG-0018": {
-          "status": "not_started",
-          "progress": 0,
-          "urgency": "scheduled"
+          "status": "adopted",
+          "progress": 1,
+          "verifiedBy": "safaaisaathi/driverapp#44",
+          "verifiedAt": "2026-11-05T00:00:00Z",
+          "checklist": [
+            {
+              "task": "Write notices/{noticeId}/receipts/{driverCode} with readAt when the driver opens a notice",
+              "done": true
+            },
+            {
+              "task": "Take the receipt doc id from the driverId claim",
+              "done": true
+            },
+            {
+              "task": "Keep the session-local unread set as the fallback until the write path works",
+              "done": true
+            },
+            {
+              "task": "Compute the dot from the cached receipts plus the local set",
+              "done": true
+            },
+            {
+              "task": "Do not add a receipt array to the notice document",
+              "done": true
+            }
+          ],
+          "note": "The flow writes readAt through the server clock and reads the receipt back per visible notice, because the strict rules authorize a receipt by its doc id and a collection-group query cannot be authorized that way. A denied read or write, which is what the loose PHASE 1 rules do, falls back to the session-local set; the dot clears for the session and no notice is hidden."
         },
         "CHG-0019": {
-          "status": "not_started",
-          "progress": 0,
-          "urgency": "scheduled"
+          "status": "adopted",
+          "progress": 1,
+          "verifiedBy": "safaaisaathi/driverapp#43",
+          "verifiedAt": "2026-11-05T00:00:00Z",
+          "checklist": [
+            {
+              "task": "Bound the complaints fetch with orderBy createdAt descending and limit(200)",
+              "done": true
+            },
+            {
+              "task": "Switch only after the platform's composite index is live",
+              "done": true
+            }
+          ],
+          "note": "The code is in PR #43 and must not merge before the platform deploys 03-rules/firestore.indexes.json. The emulator cannot enforce a composite index, so a green local run is not proof of coverage."
         },
         "CHG-0020": {
           "status": "not_applicable",
           "progress": null,
-          "note": "The manifest does not list driverapp in affectedApps."
+          "note": "The admin panel is the only affected app. The driver app never writes the driver document and its own driver read stays field-restricted; it never reads these audit fields."
         },
         "CHG-0021": {
-          "status": "not_started",
-          "progress": 0
+          "status": "adopted",
+          "progress": 1,
+          "verifiedBy": "safaaisaathi/driverapp#32",
+          "verifiedAt": "2026-11-05T00:00:00Z",
+          "checklist": [
+            {
+              "task": "Keep the staleMarker copy for a live trip of another van",
+              "done": true
+            },
+            {
+              "task": "Do not clear vans.currentTripId from the client",
+              "done": true
+            }
+          ],
+          "note": "No driver app code change. startShift repairs the stale marker inside its transaction; the app keeps its reason-code copy for the one case that still fails."
         },
         "CHG-0022": {
           "status": "not_applicable",
           "progress": null,
-          "note": "The manifest does not list driverapp in affectedApps."
+          "note": "The admin panel is the only affected app. The alert is sent by the platform callable and the driver app neither sends nor receives it."
         }
       },
       "extensionChanges": {
         "EXT-0001": {
           "status": "adopted",
           "progress": 1,
+          "verifiedBy": "safaaisaathi/driverapp#32",
           "verifiedAt": "2026-11-02T00:00:00Z",
+          "checklist": [
+            {
+              "task": "Declare trips.id in .contract/extensions/driverapp.json",
+              "done": true
+            },
+            {
+              "task": "Write trips.id on the trip round-trip shape",
+              "done": true
+            }
+          ],
           "note": "The driver app's extension file declares trips.id, and the write path already writes it. Nothing in the app had to change to adopt this entry."
         },
         "EXT-0002": {

@@ -28,28 +28,28 @@ see_also:
 | Change | Sev | Pri | Driver | User | Admin | Deadline |
 |---|---|---|---|---|---|---|
 | [CHG-0001](CHG-0001-freeze-the-collection-and-field-contract.md) Freeze the collection and field contract | S2 | P2 | ✅ 100% | ⬜ 0% | ⬜ 0% | none |
-| [CHG-0002](CHG-0002-mask-the-raw-driver-phone.md) Move the raw driver phone to staffPhones and mask it at the source | S1 | **P1** | ⬜ 0% | n/a | ⬜ 0% | 2026-11-15 |
-| [CHG-0003](CHG-0003-scope-the-rules-by-custom-claims.md) Scope the Firestore rules by custom claims instead of by signed-in | S1 | **P0** | ⬜ 0% | ⬜ 0% | ⬜ 0% | **Immediate** |
+| [CHG-0002](CHG-0002-mask-the-raw-driver-phone.md) Move the raw driver phone to staffPhones and mask it at the source | S1 | **P1** | ✅ 100% | n/a | ⬜ 0% | 2026-11-15 |
+| [CHG-0003](CHG-0003-scope-the-rules-by-custom-claims.md) Scope the Firestore rules by custom claims instead of by signed-in | S1 | **P0** | ✅ 100% | ⬜ 0% | ⬜ 0% | **Immediate** |
 | [CHG-0004](CHG-0004-admin-writes-go-through-callables.md) Route every admin panel write through a callable | S1 | **P1** | n/a | n/a | ⬜ 0% | **Immediate** |
-| [CHG-0005](CHG-0005-shard-the-gps-trail.md) Shard the GPS trail into a trail subcollection | S1 | **P1** | ⬜ 0% | n/a | n/a | 2026-11-15 |
-| [CHG-0006](CHG-0006-delete-the-pin-flow.md) Delete verifyDriverPin, setDriverPin and the vanSecrets collection | S1 | **P1** | ⬜ 0% | n/a | n/a | 2026-11-15 |
+| [CHG-0005](CHG-0005-shard-the-gps-trail.md) Shard the GPS trail into a trail subcollection | S1 | **P1** | ✅ 100% | n/a | n/a | 2026-11-15 |
+| [CHG-0006](CHG-0006-delete-the-pin-flow.md) Delete verifyDriverPin, setDriverPin and the vanSecrets collection | S1 | **P1** | ✅ 100% | n/a | n/a | 2026-11-15 |
 | [CHG-0007](CHG-0007-arrival-alert-radius-100m.md) Set the arrival alert radius to 100 m from the ward boundary | S2 | P2 | n/a | ⬜ 0% | n/a | Scheduled |
 | [EXT-0001](EXT-0001-driverapp-trip-id.md) The driver app owns trips.id | S3 | P4 | ✅ 100% | n/a | n/a | none |
-| [CHG-0008](CHG-0008-one-firebase-project.md) Put all three apps on one Firebase project | S1 | **P0** | ⬜ 0% | ⬜ 0% | ⬜ 0% | 2026-11-09 |
-| [CHG-0009](CHG-0009-the-backend-lives-in-the-platform-repo.md) Move the backend source into the platform repo and delete the copies | S1 | **P1** | ⬜ 0% | ⬜ 0% | ⬜ 0% | 2026-11-15 |
-| [CHG-0010](CHG-0010-wider-complaint-statuses-and-categories.md) Adopt the wider complaint statuses and categories | S1 | **P1** | ⬜ 0% | ⬜ 0% | ⬜ 0% | 2026-11-15 |
-| [CHG-0011](CHG-0011-the-server-writes-the-ward-duty-board.md) The server writes the ward duty board, not the citizen | S0 | **P0** | ⬜ 0% | ⬜ 0% | ⬜ 0% | 2026-11-09 |
+| [CHG-0008](CHG-0008-one-firebase-project.md) Put all three apps on one Firebase project | S1 | **P0** | ✅ 100% | ⬜ 0% | ⬜ 0% | 2026-11-09 |
+| [CHG-0009](CHG-0009-the-backend-lives-in-the-platform-repo.md) Move the backend source into the platform repo and delete the copies | S1 | **P1** | ✅ 100% | ⬜ 0% | ⬜ 0% | 2026-11-15 |
+| [CHG-0010](CHG-0010-wider-complaint-statuses-and-categories.md) Adopt the wider complaint statuses and categories | S1 | **P1** | ✅ 100% | ⬜ 0% | ⬜ 0% | 2026-11-15 |
+| [CHG-0011](CHG-0011-the-server-writes-the-ward-duty-board.md) The server writes the ward duty board, not the citizen | S0 | **P0** | ✅ 100% | ⬜ 0% | ⬜ 0% | **Immediate** |
 | [CHG-0012](CHG-0012-no-raw-phone-in-a-readable-document.md) No raw phone number in a document a client can read | S0 | **P0** | n/a | ⬜ 0% | ⬜ 0% | 2026-11-09 |
 | [CHG-0013](CHG-0013-one-admin-complaint-write.md) One callable for the admin complaint write, and no client named staff member | S1 | **P1** | n/a | ⬜ 0% | ⬜ 0% | 2026-11-15 |
 | [CHG-0014](CHG-0014-the-admin-panel-must-talk-to-firebase.md) The admin panel must talk to Firebase, not to localStorage | S2 | P2 | n/a | n/a | ⬜ 0% | none |
-| [CHG-0015](CHG-0015-fix-the-prd-pointers.md) Fix the PRD pointers and compute the source hash | S2 | P3 | ⬜ 0% | ⬜ 0% | ⬜ 0% | none |
+| [CHG-0015](CHG-0015-fix-the-prd-pointers.md) Fix the PRD pointers and compute the source hash | S2 | P3 | ✅ 100% | ⬜ 0% | ⬜ 0% | none |
 | [CHG-0016](CHG-0016-the-user-app-stack-is-react.md) The user app's stack is React, not Flutter | S2 | P2 | n/a | ⬜ 0% | n/a | none |
 | [EXT-0002](EXT-0002-userapp-collection-feedback.md) The user app owns collectionFeedback | S3 | P4 | n/a | ⬜ 0% | n/a | none |
-| [CHG-0017](CHG-0017-the-mock-location-latch-is-a-callable.md) The mock-location latch is set by a callable, not a client trip write | S2 | P2 | ⬜ 0% | n/a | n/a | none |
-| [CHG-0018](CHG-0018-the-notice-read-receipt.md) Publish the notice read receipt | S2 | P2 | ⬜ 0% | n/a | n/a | none |
-| [CHG-0019](CHG-0019-the-complaints-index-for-the-driver-app.md) The complaints index for the driver app's bounded fetch | S3 | P3 | ⬜ 0% | n/a | n/a | none |
+| [CHG-0017](CHG-0017-the-mock-location-latch-is-a-callable.md) The mock-location latch is set by a callable, not a client trip write | S2 | P2 | ✅ 100% | n/a | n/a | none |
+| [CHG-0018](CHG-0018-the-notice-read-receipt.md) Publish the notice read receipt | S2 | P2 | ✅ 100% | n/a | n/a | none |
+| [CHG-0019](CHG-0019-the-complaints-index-for-the-driver-app.md) The complaints index for the driver app's bounded fetch | S3 | P3 | ✅ 100% | n/a | n/a | none |
 | [CHG-0020](CHG-0020-the-driver-audit-fields.md) Audit who created and last changed a driver | S3 | P3 | n/a | n/a | ⬜ 0% | none |
-| [CHG-0021](CHG-0021-the-stale-van-marker-is-repaired-by-startshift.md) startShift clears a stale van marker instead of failing | S2 | P2 | ⬜ 0% | n/a | n/a | none |
+| [CHG-0021](CHG-0021-the-stale-van-marker-is-repaired-by-startshift.md) startShift clears a stale van marker instead of failing | S2 | P2 | ✅ 100% | n/a | n/a | none |
 | [CHG-0022](CHG-0022-the-mock-location-staff-alert.md) Alert the ward inspector when a mock location is latched | S2 | P2 | n/a | n/a | ⬜ 0% | none |
 
 **Legend**: ✅ done. 🟡 in progress. ⬜ not started. n/a not affected.

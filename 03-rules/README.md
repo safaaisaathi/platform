@@ -3,7 +3,7 @@ id: rules-readme
 title: The Rules Folder
 status: active
 owner: platform-owner
-updated: 2026-11-02
+updated: 2026-11-07
 contractVersion: "2.3.0"
 audience: harness
 see_also:
@@ -107,8 +107,8 @@ allow write: if false;
 | 2 | The driver app signs in with a custom token | The token has `vanId` and `driverId` claims | driverapp team |
 | 3 | The user app signs in with a custom token | The token has `deviceId` and `routeId` claims | userapp team |
 | 4 | The admin panel signs in with a custom token | The token has `staffId`, `role` and `wardIds` claims | adminpanel team |
-| 5 | The backfill is done | No complaint has `phone`, `assignedPhone` or `escalatedToPhone` left on it | Platform owner |
-| 6 | The raw phones are moved | `complaintPhones/{id}` and `staffPhones/{id}` hold the raw values | Platform owner |
+| 5 | The backfill is done | No complaint has `phone`, `assignedPhone` or `escalatedToPhone` left on it. `backfill-phones.ts --verify` proves it | Platform owner |
+| 6 | The raw phones are moved | `complaintPhones/{id}` and `staffPhones/{id}` hold the raw values. `backfill-phones.ts --apply --phase=copy` writes them | Platform owner |
 | 7 | The `wardDuty` client write is gone | `grep -rn 'syncWardDutyToCloud' apps/` gives zero hits in userapp | userapp team |
 | 8 | The admin panel writes go through callables | `grep -rn 'setDoc\\|updateDoc\\|addDoc' src/` gives zero writes outside the repository layer | adminpanel team |
 

@@ -8,6 +8,7 @@
     "node": ">=22.6"
   },
   "scripts": {
+    "backfill:phones": "node --experimental-strip-types backfill-phones.ts",
     "validate": "node --experimental-strip-types validate-contract.ts",
     "consistency": "node --experimental-strip-types check-consistency.ts",
     "adoption": "node --experimental-strip-types check-adoption.ts",
@@ -25,5 +26,8 @@
   "devDependencies": {
     "ajv": "^8.17.1",
     "ajv-formats": "^3.0.1"
+  },
+  "dependencies": {
+    "firebase-admin": "^14.0.0"
   }
 }

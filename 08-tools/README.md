@@ -3,7 +3,7 @@ id: tools-readme
 title: The Tools Layer
 status: active
 owner: platform-owner
-updated: 2026-11-02
+updated: 2026-11-07
 contractVersion: "1.0.0"
 audience: harness
 see_also:
@@ -46,6 +46,7 @@ node --experimental-strip-types validate-contract.ts
 | `bump-contract.ts` | Rewrites the app repo's `.contract/adopted.json` with a new `contractVersion` and/or `extensionVersion`, preserving the per-change adoption records, and prints a diff-style summary | In the app's adoption PR, after adopting a contract change | `adoption record bumped` with `- / +` lines for every version that moved, or `no change: ...` when already at the requested versions |
 | `export-dart-constants.ts` | Reads `constants.json` and writes `lib/generated/app_constants.dart` into the app repo: `class AppConstants` with `static const` members, SCREAMING_SNAKE keys as camelCase names, values that contain `$` or `\` as raw Dart strings | In the app repo after any constants change | `dart constants exported` |
 | `export-ts-constants.ts` | Reads `constants.json` and writes `lib/generated/app_constants.ts` into the app repo: `export const GPS_INTERVAL_SEC = 10;` style, keys kept in SCREAMING_SNAKE, string arrays as `as const` | In the app repo after any constants change | `ts constants exported` |
+| `backfill-phones.ts` | PHASE 2 preconditions 5 and 6. Dry run by default: it counts the raw phones still on `complaints` and `staff`, what it would copy into `complaintPhones` and `staffPhones`, and what it would strip. `--apply --phase=copy` writes the PII documents, `--apply --phase=strip --backup=<ref>` removes the raw fields, and `--verify` proves none are left. It never deletes a document, never prints a phone, and refuses to strip a document with no `phoneMasked` or with a phone field the contract does not name | Before the PHASE 2 rules switch, in the order copy then strip. `03-rules/README.md` section 5.1 rows 5 and 6 | `dry run: nothing written`, `copy: wrote <n> document(s)`, `strip: removed raw phone fields from <n> document(s)`, or `verify: 0 readable documents carry a raw phone field` |
 | `lib.ts` | Shared helpers: repo paths from `import.meta.url`, JSON readers that never crash silently, the plural-to-singular collection resolver, the `$ref` collector, the constants flattener and type checker, the frontmatter reader and the `contractRefs` parser | Never run directly | Not applicable |
 | `check-tables.py` | Checks every markdown table in the repository. A table is well formed when every row has the same number of pipe separators as its header. A malformed table renders as a broken grid, and a harness reading it gets the wrong column mapping | In CI, and after any batch of markdown edits | `check-tables: all markdown tables are well formed`. Prints `TABLES=<n> MALFORMED=<n>` |
 | `check-links.py` | Checks every relative markdown link. A broken link in a harness-facing document is worse than no link, because the agent follows it, finds nothing, and either invents the file or concludes the contract does not exist. Targets containing an angle-bracket placeholder are templates and are skipped | In CI, and after any file move or rename | `check-links: every relative markdown link resolves`. Prints `LINKED=<n> BROKEN=<n>` |

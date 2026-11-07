@@ -68,6 +68,10 @@ jobs:
         working-directory: 08-tools
         run: node --experimental-strip-types render-feature-map.ts --check
 
+      - name: The impact matrix must match the adoption report
+        working-directory: 08-tools
+        run: node --experimental-strip-types check-adoption.ts --check --source=report
+
       - name: The composed schemas must be committed
         run: |
           if [ -n "$(git status --porcelain 02-contracts/collections/.composed/)" ]; then

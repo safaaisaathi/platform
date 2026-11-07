@@ -23,7 +23,7 @@
 // Exits 0 when the report was produced, 1 when no access token could be found.
 
 import { execFile } from 'node:child_process';
-import { readFile, readdir } from 'node:fs/promises';
+import { readFile, readdir, stat } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -44,6 +44,7 @@ type EnvReport = {
   project: string;
   billing: { enabled: boolean | null; account: string | null; open: boolean | null; name: string | null };
   secretManagerApi: string | null;
+  adc: { present: boolean; path: string | null };
   secrets: { expected: string[]; present: string[] | null; missing: string[] };
   functions: { count: number | null; items: Array<{ name: string; runtime: string; state: string }> };
   errors: string[];
@@ -140,11 +141,26 @@ async function expectedSecrets(dir: string): Promise<string[]> {
   return [...names].sort();
 }
 
+// The Admin SDK does not read the Firebase CLI login. The live backfill dry
+// run needs Application Default Credentials, so report whether they exist
+// without reading or printing their contents.
+async function adcStatus(): Promise<{ present: boolean; path: string | null }> {
+  const explicit = process.env['GOOGLE_APPLICATION_CREDENTIALS'];
+  if (explicit !== undefined && explicit.length > 0) {
+    const present = await stat(explicit).then(() => true).catch(() => false);
+    return { present, path: explicit };
+  }
+  const wellKnown = path.join(os.homedir(), '.config', 'gcloud', 'application_default_credentials.json');
+  const present = await stat(wellKnown).then(() => true).catch(() => false);
+  return { present, path: present ? wellKnown : null };
+}
+
 async function check(project: string): Promise<EnvReport> {
   const report: EnvReport = {
     project,
     billing: { enabled: null, account: null, open: null, name: null },
     secretManagerApi: null,
+    adc: await adcStatus(),
     secrets: { expected: await expectedSecrets(path.join(REPO_ROOT, '04-functions', 'src')), present: null, missing: [] },
     functions: { count: null, items: [] },
     errors: [],
@@ -236,6 +252,13 @@ async function check(project: string): Promise<EnvReport> {
 
 function print(report: EnvReport): void {
   console.log(`project: ${report.project}`);
+  if (report.adc.present) {
+    console.log(`application default credentials: present (${report.adc.path})`);
+  } else {
+    console.log(
+      'application default credentials: missing, the live backfill dry run needs them (gcloud auth application-default login)'
+    );
+  }
 
   const billing = report.billing;
   if (billing.enabled === null) {

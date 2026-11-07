@@ -17,6 +17,8 @@
     "env": "node --experimental-strip-types check-env.ts",
     "adoption": "node --experimental-strip-types check-adoption.ts",
     "adoption:sync": "node --experimental-strip-types sync-adoption.ts",
+    "adoption:check": "node --experimental-strip-types check-adoption.ts --check --source=report",
+    "checkouts": "node --experimental-strip-types check-checkouts.ts",
     "build": "node --experimental-strip-types build-schemas.ts",
     "x-writes": "node --experimental-strip-types check-x-writes.ts",
     "sync": "node --experimental-strip-types sync-contract.ts",
@@ -25,7 +27,7 @@
     "export:ts": "node --experimental-strip-types export-ts-constants.ts",
     "tables": "python3 check-tables.py",
     "links": "python3 check-links.py",
-    "check": "npm run validate && npm run consistency && npm run features && npm run x-writes && npm run tables && npm run links && npm run map:check"
+    "check": "npm run validate && npm run consistency && npm run features && npm run x-writes && npm run tables && npm run links && npm run map:check && npm run adoption:check"
   },
   "devDependencies": {
     "ajv": "^8.17.1",

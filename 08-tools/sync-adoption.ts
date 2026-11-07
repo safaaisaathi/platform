@@ -49,6 +49,27 @@ import {
 const HEADER = 'sync-adoption failed';
 const REPORT_PATH = path.join(CHANGES_DIR, 'adoption.json');
 
+function versionParts(version: unknown): number[] {
+  return String(version ?? '0').split('.').map((part) => {
+    const value = Number.parseInt(part, 10);
+    return Number.isNaN(value) ? 0 : value;
+  });
+}
+
+// Compares two dotted contract versions. A missing version cannot be compared,
+// so it reports equal and the guard stays quiet.
+function compareVersions(left: unknown, right: unknown): number {
+  const a = versionParts(left);
+  const b = versionParts(right);
+  const length = Math.max(a.length, b.length);
+  for (let index = 0; index < length; index += 1) {
+    const one = a[index] ?? 0;
+    const two = b[index] ?? 0;
+    if (one !== two) return one < two ? -1 : 1;
+  }
+  return 0;
+}
+
 type ChangeEntry = {
   id: string;
   group: 'coreChanges' | 'extensionChanges';
@@ -327,6 +348,29 @@ async function main(): Promise<void> {
     if (currentRaw === undefined) {
       printErrors(HEADER, [`${REPORT_PATH} is missing. Run node 08-tools/sync-adoption.ts`]);
     }
+
+    // A visible checkout older than the committed report is stale. The report
+    // is the newer evidence, so compare against its entry, not the old file.
+    // This is the local false alarm the README now names.
+    const currentApps =
+      isJsonObject(currentRaw) && isJsonObject(currentRaw['apps']) ? currentRaw['apps'] : {};
+    const reportApps = isJsonObject(report['apps']) ? report['apps'] : {};
+    for (const app of APPS) {
+      const visible = reportApps[app];
+      const committed = currentApps[app];
+      if (!isJsonObject(visible) || !isJsonObject(committed)) continue;
+      const visibleVersion =
+        typeof visible['contractVersion'] === 'string' ? visible['contractVersion'] : undefined;
+      const committedVersion =
+        typeof committed['contractVersion'] === 'string' ? committed['contractVersion'] : undefined;
+      if (compareVersions(visibleVersion, committedVersion) < 0) {
+        reportApps[app] = imageOf(committed);
+        console.log(
+          `  note: ${app} checkout pins ${visibleVersion ?? 'none'}, older than the report's ${committedVersion ?? 'none'}; using the report`
+        );
+      }
+    }
+
     if (stable(withoutGeneratedAt(report)) !== stable(withoutGeneratedAt(currentRaw))) {
       printErrors(HEADER, [
         '06-changes/adoption.json is stale. Run node 08-tools/sync-adoption.ts, ' +

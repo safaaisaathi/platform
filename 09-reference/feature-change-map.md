@@ -469,10 +469,11 @@ graph LR
 
 ## 7. Regenerate
 
+Run these from the platform repo root. The `--prefix` form also works from another repo, if you pass the platform path.
+
 ```bash
-cd 08-tools
-node --experimental-strip-types render-feature-map.ts
-node --experimental-strip-types render-feature-map.ts --check
+npm --prefix 08-tools run map        # rewrite this file
+npm --prefix 08-tools run map:check   # exits 1 when the file is stale, writes nothing
 ```
 
-The second run writes nothing and exits 1 when the snapshot is stale, so it fits a pre-commit hook. Section 5 is preserved across runs. Edit it in this file, not in the script.
+The second run writes nothing and exits 1 when the snapshot is stale, so it fits a pre-commit hook and a CI job. Section 5 is preserved across runs. Edit it in this file, not in the script.

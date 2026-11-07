@@ -3,7 +3,7 @@ id: platform-agents
 title: Safai Saathi Platform AGENTS
 status: active
 owner: platform-owner
-updated: 2026-11-03
+updated: 2026-11-07
 contractVersion: "2.3.0"
 audience: harness
 see_also:
@@ -62,6 +62,7 @@ see_also:
 | Add or check a feature entry | `02-contracts/features/feature.schema.json`, `08-tools/check-features.ts` | The whole `09-reference/` |
 | Answer a question about the backend | `02-contracts/README.md`, then the one file it points to | The whole `09-reference/` |
 | Check what a schema claims about writes | That schema's `x-writes`, `03-rules/firestore.strict.rules`, `08-tools/check-x-writes.ts` | The other schemas |
+| Regenerate the feature map | The header of `08-tools/render-feature-map.ts`, then `npm --prefix 08-tools run map` and `map:check` | `09-reference/feature-change-map.md`. It is generated |
 
 ## 4. Modes
 
@@ -91,20 +92,23 @@ see_also:
 **Before you report done, run these. If any fails, you are not done.**
 
 ```bash
-node 08-tools/validate-contract.ts      # every schema is valid, every enum resolves
-node 08-tools/check-consistency.ts       # the schema and the changelog agree
-node 08-tools/check-features.ts          # every feature entry is valid, every ref resolves
-node 08-tools/build-schemas.ts           # the composed schemas build. It also proves no extension redefines a core field
-node 08-tools/check-x-writes.ts          # every collection's x-writes header agrees with the strict rules
+npm --prefix 08-tools run validate      # every schema is valid, every enum resolves
+npm --prefix 08-tools run consistency   # the schema and the changelog agree
+npm --prefix 08-tools run features      # every feature entry is valid, every ref resolves
+npm --prefix 08-tools run build         # the composed schemas build. It also proves no extension redefines a core field
+npm --prefix 08-tools run x-writes      # every collection's x-writes header agrees with the strict rules
 ```
 
 All five must print their success line. A failure means the contract is broken, and nothing downstream can be trusted.
 
-**If you edited markdown, run these two as well.**
+The npm scripts pass `--experimental-strip-types` for you, so they need Node 22.6 or newer. Calling a `.ts` file directly needs the same flag.
+
+**If you edited markdown, run these three as well.**
 
 ```bash
-python3 08-tools/check-tables.py         # every markdown table is well formed
-python3 08-tools/check-links.py          # every relative markdown link resolves
+npm --prefix 08-tools run tables        # every markdown table is well formed
+npm --prefix 08-tools run links         # every relative markdown link resolves
+npm --prefix 08-tools run map:check     # the generated feature map matches its machine inputs
 ```
 
 **If you touched the backend, run these two as well.**
@@ -112,11 +116,19 @@ python3 08-tools/check-links.py          # every relative markdown link resolves
 ```bash
 cd 04-functions && npx tsc --noEmit      # the strict TypeScript build. Zero errors
 cd 04-functions && npm test               # the Node test runner. Every test passes
-node 08-tools/export-ts-constants.ts . --out 04-functions/src/generated/constants.ts   # the constants file matches constants.json
+node --experimental-strip-types 08-tools/export-ts-constants.ts . --out 04-functions/src/generated/constants.ts   # the constants file matches constants.json
 git diff --exit-code -- 04-functions/src/generated/constants.ts                         # it did not drift
 ```
 
 **`npm test` needs Node 22.6 or newer**, because it uses Node's own type stripping. The deployed runtime is Node 22, from `04-functions/package.json` `engines.node`. Node 20 was decommissioned on 2026-10-30, so a deploy on it fails with "Runtime Node.js 20 was decommissioned".
+
+**Before a deploy, check the environment.** This reads only:
+
+```bash
+npm --prefix 08-tools run env           # billing, secret names present, functions deployed
+```
+
+It never prints a secret value. A closed billing account or a missing secret name is why a functions deploy fails, and this names it in one line.
 
 ## 7. Report format
 

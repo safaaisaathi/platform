@@ -60,6 +60,7 @@ type Feature = {
   id: string;
   title: string;
   status: string;
+  updated?: string;
   actors?: string[];
   steps?: Array<{ contractRefs?: string[] }>;
   slices: Slice[];
@@ -80,7 +81,20 @@ type AdoptionApp = {
   extensionChanges?: Record<string, AdoptionEntry>;
 };
 
-type Adoption = { apps: Record<string, AdoptionApp> };
+type Adoption = { generatedAt?: string; apps: Record<string, AdoptionApp> };
+
+// The snapshot's `updated:` date comes from the data, never from the wall
+// clock. A wall-clock date made --check fail every midnight, because the
+// regenerated header differed from the committed one. Taking the newest date
+// the machine files already carry keeps the output deterministic.
+function latestDate(values: Array<string | undefined>): string {
+  const dates = values
+    .filter((value): value is string => typeof value === 'string')
+    .filter((value) => /^\d{4}-\d{2}-\d{2}/.test(value))
+    .map((value) => value.slice(0, 10))
+    .sort();
+  return dates.at(-1) ?? '1970-01-01';
+}
 
 async function readJson<T>(file: string): Promise<T> {
   return JSON.parse(await readFile(file, 'utf8')) as T;
@@ -338,7 +352,7 @@ async function main(): Promise<void> {
   const checkOnly = process.argv.includes('--check');
 
   const version = (await readFile(VERSION_PATH, 'utf8')).trim();
-  const manifest = await readJson<{ changes: Change[] }>(MANIFEST_PATH);
+  const manifest = await readJson<{ generatedAt?: string; changes: Change[] }>(MANIFEST_PATH);
   const adoption = await readJson<Adoption>(ADOPTION_PATH);
   const files = (await readdir(FEATURES_DIR)).filter(
     (name) => name.endsWith('.json') && name !== 'feature.schema.json'
@@ -383,13 +397,19 @@ async function main(): Promise<void> {
     // The file does not exist yet. The default stands.
   }
 
+  const updated = latestDate([
+    manifest.generatedAt,
+    adoption.generatedAt,
+    ...features.map((feature) => feature.updated),
+  ]);
+
   const doc: string[] = [
     '---',
     'id: feature-change-map',
     'title: The Feature and Change Map',
     'status: frozen',
     'owner: platform-owner',
-    `updated: ${new Date().toISOString().slice(0, 10)}`,
+    `updated: ${updated}`,
     `contractVersion: "${version}"`,
     'audience: both',
     'see_also:',
@@ -463,13 +483,14 @@ async function main(): Promise<void> {
     '',
     '## 7. Regenerate',
     '',
+    'Run these from the platform repo root. The `--prefix` form also works from another repo, if you pass the platform path.',
+    '',
     '```bash',
-    'cd 08-tools',
-    'node --experimental-strip-types render-feature-map.ts',
-    'node --experimental-strip-types render-feature-map.ts --check',
+    'npm --prefix 08-tools run map        # rewrite this file',
+    'npm --prefix 08-tools run map:check   # exits 1 when the file is stale, writes nothing',
     '```',
     '',
-    'The second run writes nothing and exits 1 when the snapshot is stale, so it fits a pre-commit hook. Section 5 is preserved across runs. Edit it in this file, not in the script.',
+    'The second run writes nothing and exits 1 when the snapshot is stale, so it fits a pre-commit hook and a CI job. Section 5 is preserved across runs. Edit it in this file, not in the script.',
     '',
   ];
 

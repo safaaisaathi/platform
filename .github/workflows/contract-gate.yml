@@ -64,6 +64,10 @@ jobs:
         working-directory: 08-tools
         run: node --experimental-strip-types check-x-writes.ts
 
+      - name: The feature and change map must be current
+        working-directory: 08-tools
+        run: node --experimental-strip-types render-feature-map.ts --check
+
       - name: The composed schemas must be committed
         run: |
           if [ -n "$(git status --porcelain 02-contracts/collections/.composed/)" ]; then

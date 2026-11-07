@@ -3,7 +3,7 @@ id: impact-matrix
 title: The Impact Matrix
 status: active
 owner: platform-owner
-updated: 2026-11-05
+updated: 2026-11-07
 contractVersion: "2.3.0"
 audience: both
 see_also:
@@ -22,7 +22,7 @@ see_also:
 
 ## 1. The current state
 
-**Contract version**: `2.2.0`. `2.0.0` was the breaking release and it is published. `2.1.0` added the `flagMockLocation` callable. `2.2.0` publishes the notice read receipt and adds the complaints descending index. No app has adopted `2.0.0` yet.
+**Contract version**: `2.3.0`. `2.0.0` was the breaking release and it is published. `2.1.0` added the `flagMockLocation` callable. `2.2.0` published the notice read receipt and added the complaints descending index. `2.3.0` added the driver audit fields, the stale-marker repair and the mock-location staff alert. The driver app is fully adopted on `2.3.0`. The user app and the admin panel are still at zero.
 
 <!-- BEGIN GENERATED: section-1 -->
 | Change | Sev | Pri | Driver | User | Admin | Deadline |
@@ -61,8 +61,8 @@ see_also:
 
 | Change | What it is | Who owns it | By when |
 |---|---|---|---|
-| **CHG-0008** | One Firebase project | All three apps | 2026-11-09 |
-| **CHG-0011** | The server writes the ward duty board | userapp, driverapp, adminpanel | 2026-11-09 |
+| **CHG-0008** | One Firebase project | userapp, adminpanel (driverapp adopted) | 2026-11-09 |
+| **CHG-0011** | The server writes the ward duty board | userapp, adminpanel (driverapp adopted) | 2026-11-09 |
 | **CHG-0012** | No raw phone in a readable document | userapp, adminpanel | 2026-11-09 |
 
 **CHG-0003 is the rules rewrite and it blocks the release of all three apps.** It is the switch in `03-rules/README.md` section 5.
@@ -83,17 +83,16 @@ see_also:
 
 ### driverapp
 
-| Change | What to do | Blocked release? |
-|---|---|---|
-| CHG-0002 | Read `drivers.phoneMasked` instead of `drivers.phone`. Show the mask on the confirm card | Yes, at the deadline |
-| CHG-0003 | Call `bindDeviceToVan` at sign-in. Sign in with the custom token. Stop sending the badge code as a client parameter | **Yes, immediately** |
-| CHG-0005 | Write the trail to `trips/{id}/trail/{n}` in chunks of 1000. Stop writing `trips.gpsTrail` | Yes, at the deadline |
-| CHG-0006 | Delete the PIN flow remnants. Delete the `cloud_functions` dependency | Yes, at the deadline |
-| CHG-0008 | Point every project id at `safaaisaathi-63a87`. `lib/core/config/firebase_options.dart:75` still says `driver-app-demo`, and the bootstrap test says `test-project` | **Yes, at the deadline** |
-| CHG-0009 | Nothing to write. The driver app had no backend copy. Confirm `grep -rn 'onCall\|onWrite\|onSchedule' lib/` gives zero hits | No |
-| CHG-0010 | Widen the complaint status type to the seven contract values | Yes, at the deadline |
-| CHG-0011 | Call `markWardDone`. The server writes `wardDuty`. Stop writing the document directly | Yes, at the deadline |
-| CHG-0012 | Nothing to write. The driver app never had the raw phone. But it must stop reading `complaints.phone` | No |
+**Nothing outstanding.** The driver app adopted `2.3.0`. The generated table in section 1 is the record: 14 adopted, 8 not applicable.
+
+| PR | What it closed |
+|---|---|
+| [#32](https://github.com/safaaisaathi/driverapp/pull/32) | Claim-scoped sign-in, server-owned shifts, the sharded trail, the masked phone, the widened statuses, one project, no PIN flow, no backend copy, the PRD pointer and the `trips.id` extension |
+| [#40](https://github.com/safaaisaathi/driverapp/pull/40) | The mock-location latch as a callable |
+| [#43](https://github.com/safaaisaathi/driverapp/pull/43) | The bounded complaint fetch on the descending index |
+| [#44](https://github.com/safaaisaathi/driverapp/pull/44) | The notice read receipt |
+
+The old per-change table is in the git history. Do not re-add it: section 1 is generated, and the checklists live in the app's `.contract/adopted.json`.
 
 ### userapp
 
@@ -130,7 +129,7 @@ see_also:
 
 **The checklist lives with the change, in `manifest.json` under `migration.steps`.** This is the summary.
 
-**The rule that makes it meaningful.** *An app with no checklist shows 0%, not 100%.* Every app here is at 0% because nothing has been written down, not because the work is invisible.
+**The rule that makes it meaningful.** *An app with no checklist shows 0%, not 100%.* The user app and the admin panel are at 0% because no checklist has been written down, not because the work is invisible. The driver app is at 100% because its checklist is written down and merged.
 
 **The per-app prompt lives in `10-handoff/`.** One file per app, written for that app's harness, listing the changes that app must adopt, in order, with the acceptance check for each one.
 

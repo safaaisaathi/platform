@@ -18,10 +18,17 @@
 // Usage:
 //   node check-adoption.ts <app-repo>   (or set APP_REPO, default ".")
 //   node check-adoption.ts --write      regenerate the impact matrix
+//   node check-adoption.ts --write --source=report
 //
 // The --write mode regenerates section 1 of 06-changes/impact-matrix.md from
 // the manifest and the adoption records, so the matrix is never hand-edited
 // and never drifts from the machine log.
+//
+// By default --write prefers a sibling app checkout, because that file is the
+// app's own truth. It refuses to write when a checkout pins an older contract
+// version than 06-changes/adoption.json already reports: that checkout is
+// stale, and writing from it would silently roll the matrix back. Pass
+// --source=report to use the committed report instead.
 
 import { readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -187,12 +194,44 @@ function buildMatrixSection(changes: JsonObject[], records: ReadonlyMap<string, 
   return lines.join('\n');
 }
 
+// Compares two dotted contract versions. A missing version cannot be compared,
+// so it reports equal and the guard stays quiet.
+function compareVersions(a: string | undefined, b: string | undefined): number {
+  if (a === undefined || b === undefined) return 0;
+  const left = a.split('.').map((part) => Number.parseInt(part, 10));
+  const right = b.split('.').map((part) => Number.parseInt(part, 10));
+  const length = Math.max(left.length, right.length);
+  for (let index = 0; index < length; index += 1) {
+    const one = Number.isNaN(left[index]) ? 0 : left[index] ?? 0;
+    const two = Number.isNaN(right[index]) ? 0 : right[index] ?? 0;
+    if (one !== two) return one < two ? -1 : 1;
+  }
+  return 0;
+}
+
+type MatrixSource = 'auto' | 'report';
+
+type MatrixRecords = {
+  records: Map<string, AppRecord>;
+  // One line per app that came from the committed report, so the source is
+  // visible before the file is overwritten.
+  sources: string[];
+  // One line per stale sibling checkout. Non-empty means --write must refuse.
+  stale: string[];
+};
+
 // Collects the adoption records for the matrix. An app's OWN file wins when
 // the app repo is checked out next to this one. Otherwise the platform's
 // report in 06-changes/adoption.json is used, and that report is a copy of
 // the app's file anyway.
-async function collectMatrixRecords(): Promise<Map<string, AppRecord>> {
+//
+// A sibling checkout that pins an older contract version than the report is
+// stale. In auto mode that is an error, because the last time it was allowed
+// the generated table rolled back from 100% to 0%.
+async function collectMatrixRecords(source: MatrixSource): Promise<MatrixRecords> {
   const records = new Map<string, AppRecord>();
+  const sources: string[] = [];
+  const stale: string[] = [];
 
   const platformRaw = await tryReadJson(path.join(CHANGES_DIR, 'adoption.json'));
   const platformApps =
@@ -201,25 +240,51 @@ async function collectMatrixRecords(): Promise<Map<string, AppRecord>> {
       : {};
 
   for (const app of APPS) {
-    const ownPath = path.join(MONOREPO_ROOT, app, '.contract', 'adopted.json');
-    const ownRaw = await tryReadJson(ownPath);
-    if (ownRaw !== undefined && isJsonObject(ownRaw)) {
-      records.set(app, toRecord(app, ownRaw, true));
-      continue;
-    }
     const reported = platformApps[app];
-    if (isJsonObject(reported)) {
-      records.set(app, toRecord(app, reported, false));
+    const reportRecord = isJsonObject(reported) ? toRecord(app, reported, false) : undefined;
+
+    const ownPath = path.join(MONOREPO_ROOT, app, '.contract', 'adopted.json');
+    const ownRaw = source === 'report' ? undefined : await tryReadJson(ownPath);
+
+    if (ownRaw !== undefined && isJsonObject(ownRaw)) {
+      const ownRecord = toRecord(app, ownRaw, true);
+      if (reportRecord !== undefined && compareVersions(ownRecord.contractVersion, reportRecord.contractVersion) < 0) {
+        stale.push(
+          `${app}: the checkout pins ${ownRecord.contractVersion ?? 'none'}, the report pins ${reportRecord.contractVersion ?? 'none'}`
+        );
+      }
+      records.set(app, ownRecord);
+      sources.push(`${app} <- checkout ${ownRecord.contractVersion ?? 'none'} (${path.relative(process.cwd(), ownPath)})`);
       continue;
     }
+
+    if (reportRecord !== undefined) {
+      records.set(app, reportRecord);
+      sources.push(`${app} <- report ${reportRecord.contractVersion ?? 'none'}`);
+      continue;
+    }
+
     records.set(app, emptyRecord(app));
+    sources.push(`${app} <- empty, no adoption record`);
   }
-  return records;
+
+  return { records, sources, stale };
 }
 
 // Rewrites the generated block of the impact matrix in place.
 async function writeImpactMatrix(changes: JsonObject[]): Promise<void> {
-  const records = await collectMatrixRecords();
+  const source: MatrixSource = process.argv.includes('--source=report') ? 'report' : 'auto';
+  const { records, sources, stale } = await collectMatrixRecords(source);
+
+  for (const line of sources) console.log(`matrix source: ${line}`);
+
+  if (stale.length > 0) {
+    printErrors(HEADER, [
+      ...stale.map((line) => `stale sibling checkout, ${line}`),
+      'The matrix was not written. Run 08-tools/sync-adoption.ts, update the checkout, or pass --source=report.',
+    ]);
+  }
+
   const section = buildMatrixSection(changes, records);
 
   const text = await readFile(MATRIX_PATH, 'utf8');

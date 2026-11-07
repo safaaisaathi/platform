@@ -23,6 +23,7 @@ Everything in this folder explains HOW the platform got here. None of it overrid
 | File | What it is | Read it when |
 |---|---|---|
 | `issue-register.md` | The live state of every issue across the three repos. What is open, what is a false close, what is a numbering collision | You need to know what is actually outstanding |
+| `feature-change-map.md` | The tree: every feature, its slices and their state, the changes that touch it, which are shared and which are contract-wide, and what is blocked. Generated, so it does not drift | You want the shape of the whole product at once, not one file at a time |
 | `BACKEND-GO-blueprint.md` | The authoritative backend contract. 14 sections, the rules-vs-Functions split, the FCM topic map, the arrival flow, the worked example, and the Q1 to Q7 rulings | You need the reasoning behind the backend design |
 | `AUDIT2-flow-backend-ui.md` | The full audit. 25 backend findings, 20 flow findings, 11 UI findings, with the gates | You are chasing a specific defect |
 | `SHARED-REPO-blueprint.md` | The design record for THIS repo. Why the shared repo exists, what it replaces, and the tool verdict | You want to know why the repo is shaped this way |

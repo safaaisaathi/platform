@@ -9,6 +9,8 @@
   },
   "scripts": {
     "backfill:phones": "node --experimental-strip-types backfill-phones.ts",
+    "map": "node --experimental-strip-types render-feature-map.ts",
+    "map:check": "node --experimental-strip-types render-feature-map.ts --check",
     "validate": "node --experimental-strip-types validate-contract.ts",
     "consistency": "node --experimental-strip-types check-consistency.ts",
     "adoption": "node --experimental-strip-types check-adoption.ts",

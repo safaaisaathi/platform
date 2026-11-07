@@ -3,7 +3,7 @@ id: guides-readme
 title: The Guides Router
 status: active
 owner: platform-owner
-updated: 2026-11-03
+updated: 2026-11-07
 contractVersion: "2.3.0"
 audience: harness
 see_also:
@@ -68,6 +68,7 @@ On a conflict between a guide and `../02-contracts/`, the contract wins and the 
 | Build or debug the arrival alert | `./arrival-notification-flow.md` | Walk the nine steps. Check every guard before you trust a result |
 | Build a screen, a widget or a push handler | `./common-ui-patterns.md` | Use the shared token names. Keep copy inside the app |
 | You do not know which action your task is | `./using-this-repo.md` | Find your A-number there, then come back to this table |
+| The platform is the reason you cannot move forward: a missing field, a secret, a rule, a failed deploy, or two documents that disagree | `./blocked-on-platform.md` | Open one issue with the template. The platform decides, and the platform writes the resolution |
 
 If your task is not in this table, read `../02-contracts/README.md` first. Do not guess.
 
@@ -107,10 +108,10 @@ Expected output: `07-guides/README.md: TABLES=4 MALFORMED=0`. Any `BAD` line is 
 Also verify every guide named in the table exists:
 
 ```bash
-for f in reading-the-contract making-a-contract-change publishing-a-contract-change adding-a-new-feature adopting-a-change wiring-an-app-to-the-contract emergency-changes firebase-access-and-keys firebase-getting-started backend-split arrival-notification-flow common-ui-patterns using-this-repo; do test -f "07-guides/$f.md" && echo "OK $f" || echo "MISSING $f"; done
+for f in reading-the-contract making-a-contract-change publishing-a-contract-change adding-a-new-feature adopting-a-change wiring-an-app-to-the-contract emergency-changes firebase-access-and-keys firebase-getting-started backend-split arrival-notification-flow common-ui-patterns using-this-repo blocked-on-platform; do test -f "07-guides/$f.md" && echo "OK $f" || echo "MISSING $f"; done
 ```
 
-Expected: thirteen `OK` lines, zero `MISSING` lines.
+Expected: fourteen `OK` lines, zero `MISSING` lines.
 
 ## 7. Report format
 

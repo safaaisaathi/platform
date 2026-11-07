@@ -74,6 +74,7 @@ see_also:
 | 10 | NEVER mark a checklist item `done` without evidence. Evidence is a merged PR number |
 | 11 | NEVER edit the platform repo from this repo |
 | 12 | **Do not change the app's UI, its design, or its bilingual copy structure.** This brief is about the data path |
+| 13 | When the platform is what stops you, do not work around it. Open an issue with `gh issue create --repo safaaisaathi/platform --template blocked-on-platform.md`, then read `../platform/07-guides/blocked-on-platform.md`. You may open an issue there, never a commit. The platform decides and writes the resolution, and you do not close the issue before that comment exists |
 
 ## 3. Read budget
 

@@ -71,6 +71,7 @@ see_also:
 | 9 | NEVER set a change to `adopted` while any checklist item is open. Partial adoption is `in_progress` |
 | 10 | NEVER edit the platform repo from this repo |
 | 11 | **Do not change the app's UI, its localisation, or its design.** This brief is about the data path. The screens stay as they are |
+| 12 | When the platform is what stops you, do not work around it. Open an issue with `gh issue create --repo safaaisaathi/platform --template blocked-on-platform.md`, then read `../platform/07-guides/blocked-on-platform.md`. You may open an issue there, never a commit. The platform decides and writes the resolution, and you do not close the issue before that comment exists |
 
 ## 3. Read budget
 

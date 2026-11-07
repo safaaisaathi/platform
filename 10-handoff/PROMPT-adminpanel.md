@@ -74,6 +74,7 @@ see_also:
 | 10 | NEVER edit the platform repo from this repo |
 | 11 | **Do not redesign the screens.** The panel's layout, its look and its 25 screens stay. This brief replaces the data layer under them |
 | 12 | **Do not delete a screen until the live one replaces it.** Delete the dead lineage last, and only after the routed one works |
+| 13 | When the platform is what stops you, do not work around it. Open an issue with `gh issue create --repo safaaisaathi/platform --template blocked-on-platform.md`, then read `../platform/07-guides/blocked-on-platform.md`. You may open an issue there, never a commit. The platform decides and writes the resolution, and you do not close the issue before that comment exists |
 
 ## 3. Read budget
 
